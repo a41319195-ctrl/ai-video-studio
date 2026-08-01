@@ -28,7 +28,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px;
+    padding: 14px 20px;
     background: #1e293b;
     border-bottom: 1px solid #334155;
     width: 100%;
@@ -43,21 +43,14 @@ body {
     color: #38bdf8;
 }
 
-.coin-balance {
-    background: #0f172a;
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid #475569;
-    font-size: 14px;
-    font-weight: 600;
-}
-
+/* 3-Line Menu Button - Medium & Clear Size */
 .icon-btn {
     background: none;
     border: none;
     color: #f8fafc;
-    font-size: 20px;
+    font-size: 26px; /* साइज़ बड़ा कर दिया है */
     cursor: pointer;
+    padding: 4px 8px;
 }
 
 /* Sidebar Sliding Drawer */
@@ -131,7 +124,7 @@ body {
     color: #94a3b8;
 }
 
-/* Workspace: Mobile First (Stack: Top Input, Bottom Preview) */
+/* Workspace: Mobile First - Always Stacked Top to Bottom inside screen */
 .workspace {
     flex: 1;
     padding: 16px;
@@ -139,7 +132,8 @@ body {
     flex-direction: column;
     gap: 16px;
     width: 100%;
-    max-width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .input-section {
@@ -149,7 +143,7 @@ body {
     border: 1px solid #334155;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: 16px;
     width: 100%;
 }
 
@@ -157,7 +151,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 16px;
+    width: 100%;
 }
 
 .input-group label {
@@ -167,7 +161,7 @@ body {
 
 textarea {
     width: 100%;
-    height: 100px;
+    height: 110px;
     padding: 12px;
     background: #0f172a;
     border: 1px solid #475569;
@@ -185,7 +179,6 @@ textarea:focus {
 .controls-row, .options-row {
     display: flex;
     gap: 12px;
-    margin-bottom: 16px;
     width: 100%;
 }
 
@@ -255,7 +248,7 @@ select {
 
 .video-preview-box {
     width: 100%;
-    min-height: 280px;
+    min-height: 220px;
     background: #1e293b;
     border: 2px dashed #475569;
     border-radius: 12px;
@@ -273,9 +266,8 @@ select {
     .workspace {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 24px;
+        max-width: 1200px;
         gap: 24px;
+        align-items: start;
     }
 }
