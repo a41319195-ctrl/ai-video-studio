@@ -8,10 +8,33 @@
 </head>
 <body>
     <div class="studio-container">
+        <!-- Top Navigation Bar with Menu & Coins -->
+        <nav class="navbar">
+            <button id="menuBtn" class="icon-btn">☰</button>
+            <div class="logo">AI Video Studio</div>
+            <div class="coin-balance">
+                🪙 <span id="userCoins">1,000,000</span> Coins
+            </div>
+        </nav>
+
+        <!-- Sidebar Menu -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Menu</h3>
+                <button id="closeMenu" class="icon-btn">✕</button>
+            </div>
+            <ul class="sidebar-links">
+                <li><a href="#" class="active">🏠 Studio</a></li>
+                <li><a href="#">👑 Admin Account</a></li>
+                <li><a href="#">💳 Buy Coins ($1 Pack)</a></li>
+                <li><a href="#">📁 My Generated Videos</a></li>
+            </ul>
+        </div>
+
         <!-- Header -->
-     <header class="studio-header">
+        <header class="studio-header">
             <h1>AI Video Studio</h1>
-            <p>Transform text, voice, and images into cinematic masterpieces.</p>
+            <p>Transform text, voice, and images into cinematic masterpieces. (Cost varies by duration)</p>
         </header>
 
         <!-- Main Workspace -->
@@ -25,8 +48,8 @@
 
                 <!-- Media & Voice Controls -->
                 <div class="controls-row">
-                    <div class="file-upload">
-                        <label for="imageUpload" class="btn-secondary">📁 Upload Image</label>
+                    <div class="file-upload" style="flex: 1; display: flex;">
+                        <label for="imageUpload" class="btn-secondary" style="width: 100%; cursor: pointer; text-align: center;">📁 Upload Image</label>
                         <input type="file" id="imageUpload" accept="image/*" hidden>
                     </div>
                     <button id="micBtn" class="btn-secondary">🎙️ Voice Command</button>
@@ -43,11 +66,11 @@
                         </select>
                     </div>
                     <div class="select-group">
-                        <label for="aspectRatio">Format:</label>
-                        <select id="aspectRatio">
-                            <option value="9:16">Reels / Shorts (9:16)</option>
-                            <option value="16:9">YouTube (16:9)</option>
-                            <option value="1:1">Square (1:1)</option>
+                        <label for="videoDuration">Duration / Format:</label>
+                        <select id="videoDuration">
+                            <option value="30">Shorts / Reel (30 sec) - 5 Coins</option>
+                            <option value="120">Standard (1-2 min) - 10 Coins</option>
+                            <option value="300" selected>Cinematic (Up to 5 min) - 20 Coins</option>
                         </select>
                     </div>
                 </div>
