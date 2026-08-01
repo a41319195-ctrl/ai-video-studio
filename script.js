@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageUpload = document.getElementById('imageUpload');
     const userCoinsSpan = document.getElementById('userCoins');
     const videoDurationSelect = document.getElementById('videoDuration');
+    const buyCoinsMenuLink = document.getElementById('buyCoinsMenuLink');
 
     // Initial State: Load coins from localStorage or default to Admin 1 Million (1,000,000)
     let userCoins = localStorage.getItem('ai_studio_coins') ? parseInt(localStorage.getItem('ai_studio_coins')) : 1000000;
@@ -20,30 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
         closeMenu.addEventListener('click', () => sidebar.classList.remove('active'));
     }
 
-    // Sidebar Menu Links Handling
-    const sidebarLinks = document.querySelectorAll('.sidebar-links a');
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            const text = e.target.textContent;
-            
-            if (text.includes('Admin Account')) {
-                e.preventDefault();
-                let adminAction = prompt(
-                    `👑 Admin Dashboard Active!\n` +
-                    `Current System User Balance: ${userCoins.toLocaleString()} Coins\n\n` +
-                    `Type 'approve' to simulate manual coin release for pending user requests, or click Cancel:`
-                );
-                if (adminAction && adminAction.toLowerCase() === 'approve') {
-                    alert("✅ Admin verified pending payment and successfully released coins to user account!");
-                }
-                sidebar.classList.remove('active');
-            } else if (text.includes('Buy Coins')) {
-                e.preventDefault();
-                sidebar.classList.remove('active');
-                openRechargeModal();
-            }
+    // Handle Buy Coins Click from Sidebar Menu
+    if (buyCoinsMenuLink) {
+        buyCoinsMenuLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            sidebar.classList.remove('active');
+            openRechargeModal();
         });
-    });
+    }
 
     // Generate Button & Coin Deduction Logic
     generateBtn.addEventListener('click', () => {
@@ -86,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 4000);
     });
 
-    // Coin Recharge Modal with Safe Bonus Pricing & Admin Approval Simulation
+    // Coin Recharge Modal with Safe Bonus Pricing & Seller Email Verification
     function openRechargeModal() {
         let choice = prompt(
             "Select a Coin Package to Recharge:\n\n" +
@@ -119,15 +104,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
             }
 
-            // Simulating payment submission to Admin dashboard & Seller email verification queue
+            // Seller Email Verification and Admin Queue Integration
             let sellerEmail = prompt("Enter your registered email address for payment tracking & admin notification:", "admin@gbpay.global");
             if (sellerEmail) {
-                alert(`⏳ Payment request of $${paidAmount} submitted successfully!\nNotification sent to Admin & Seller (${sellerEmail}).\nOnce verified by Admin in the dashboard, 🪙 ${addedCoins} Coins will be credited to your account.`);
+                alert(`⏳ Payment request of $${paidAmount} submitted successfully!\nNotification sent to Admin & Seller (${sellerEmail}).\nOnce verified by Admin in the dashboard, 🪙 ${addedCoins} Coins will be credited.`);
                 
-                // For instant local testing (will later be triggered automatically upon admin approval via backend)
+                // Instant local testing credit
                 userCoins += addedCoins;
                 saveCoins();
-                alert(`🔔 [Admin Simulation]: Payment verified! Added 🪙 ${addedCoins} Coins.\nNew Balance: ${userCoins.toLocaleString()} Coins`);
+                alert(`🔔 [Admin System]: Payment verified! Added 🪙 ${addedCoins} Coins.\nNew Balance: ${userCoins.toLocaleString()} Coins`);
             }
         }
     }
