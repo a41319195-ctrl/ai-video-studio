@@ -24,7 +24,7 @@ body {
 }
 
 .studio-header {
-    padding: 16px;
+    padding: 16px 20px;
     background: #1e293b;
     border-bottom: 1px solid #334155;
     text-align: left;
@@ -42,15 +42,17 @@ body {
     color: #94a3b8;
 }
 
+/* Default Mobile First: Single Column */
 .workspace {
     flex: 1;
-    padding: 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 16px;
     width: 100%;
 }
 
+/* Desktop View: Two Columns side-by-side */
 @media (min-width: 900px) {
     .workspace {
         display: grid;
@@ -58,6 +60,7 @@ body {
         max-width: 1400px;
         margin: 0 auto;
         padding: 24px;
+        gap: 24px;
     }
 }
 
