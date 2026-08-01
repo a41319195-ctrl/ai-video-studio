@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Studio - Next-Gen Creator Suite</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="studio-container">
+        <!-- Header -->
+        header class="studio-header">
+            <h1>AI Video Studio</h1>
+            <p>Transform text, voice, and images into cinematic masterpieces.</p>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            <!-- Input Section -->
+            <section class="input-section">
+                <div class="input-group">
+                    <label for="prompt">Describe your video or idea:</label>
+                    <textarea id="prompt" placeholder="e.g., A cute cat driving a futuristic car through neon streets..."></textarea>
+                </div>
+
+                <!-- Media & Voice Controls -->
+                <div class="controls-row">
+                    <div class="file-upload">
+                        <label for="imageUpload" class="btn-secondary">📁 Upload Image</label>
+                        <input type="file" id="imageUpload" accept="image/*" hidden>
+                    </div>
+                    <button id="micBtn" class="btn-secondary">🎙️ Voice Command</button>
+                </div>
+
+                <!-- Options Row -->
+                <div class="options-row">
+                    <div class="select-group">
+                        <label for="resolution">Quality:</label>
+                        <select id="resolution">
+                            <option value="720p">HD (720p)</option>
+                            <option value="1080p" selected>Full HD (1080p)</option>
+                            <option value="4k">Ultra HD (4K)</option>
+                        </select>
+                    </div>
+                    <div class="select-group">
+                        <label for="aspectRatio">Format:</label>
+                        <select id="aspectRatio">
+                            <option value="9:16">Reels / Shorts (9:16)</option>
+                            <option value="16:9">YouTube (16:9)</option>
+                            <option value="1:1">Square (1:1)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="btn-primary">✨ Generate Video</button>
+            </section>
+
+            <!-- Output Preview Section -->
+            <section class="preview-section">
+                <div class="video-preview-box">
+                    <p id="previewText">Your generated video will appear here...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
