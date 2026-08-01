@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - AI Video Studio</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+        .stat-card h3 {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+        .section-box {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            margin-bottom: 24px;
+        }
+        .section-box h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #f8fafc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+            font-size: 14px;
+        }
+        th {
+            color: #94a3b8;
+        }
+        .btn-action {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .btn-approve {
+            background: #22c55e;
+            color: white;
+            margin-right: 6px;
+        }
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="studio-container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <a href="index.html" class="icon-btn" style="text-decoration: none; font-size: 18px;">🏠 Back to Studio</a>
+            <div class="logo">👑 Admin Dashboard</div>
+            <div></div>
+        </nav>
+
+        <div class="admin-container">
+            <!-- Stats Overview -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Current User Coin Balance</h3>
+                    <div class="value" id="adminCoinDisplay">🪙 1,000,000</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending Payment Requests</h3>
+                    <div class="value" id="pendingCount">0 Requests</div>
+                </div>
+                <div class="stat-card">
+                    <h3>System Status</h3>
+                    <div class="value" style="color: #22c55e;">🟢 Online & Secure</div>
+                </div>
+            </div>
+
+            <!-- Coin Management Section -->
+            <div class="section-box">
+                <h2>Quick Coin Management</h2>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn-primary" style="width: auto;" id="add1000Coins">➕ Add 1,000 Coins to User</button>
+                    <button class="btn-secondary" style="flex: unset;" id="resetCoinsBtn">🔄 Reset Coins to Default (1M)</button>
+                </div>
+            </div>
+
+            <!-- Payment Approval Queue -->
+            <div class="section-box">
+                <h2>Coin Recharge & Payment Queue</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User Email</th>
+                            <th>Package / Amount</th>
+                            <th>Coins to Credit</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentQueueBody">
+                        <tr>
+                            <td>admin@gbpay.global</td>
+                            <td>$20 (Standard Pack)</td>
+                            <td>🪙 300 Coins</td>
+                            <td style="color: #eab308;">Pending Verification</td>
+                            <td>
+                                <button class="btn-action btn-approve" onclick="alert('Payment Approved! Coins credited.')">Approve</button>
+                                <button class="btn-action btn-reject" onclick="alert('Payment Rejected.')">Reject</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load and display current coins from localStorage
+        const adminCoinDisplay = document.getElementById('adminCoinDisplay');
+        let currentCoins = localStorage.getItem('ai_studio_coins') ? parseInt(localStorage.getItem('ai_studio_coins')) : 1000000;
+        adminCoinDisplay.textContent = `🪙 ${currentCoins.toLocaleString()}`;
+
+        // Add Coins button logic
+        document.getElementById('add1000Coins').addEventListener('click', () => {
+            currentCoins += 1000;
+            localStorage.setItem('ai_studio_coins', currentCoins);
+            adminCoinDisplay.textContent = `🪙 ${currentCoins.toLocaleString()}`;
+            alert('Successfully added 1,000 coins!');
+        });
+
+        // Reset Coins button logic
+        document.getElementById('resetCoinsBtn').addEventListener('click', () => {
+            currentCoins = 1000000;
+            localStorage.setItem('ai_studio_coins', currentCoins);
+            adminCoinDisplay.textContent = `🪙 ${currentCoins.toLocaleString()}`;
+            alert('Coin balance reset to 1,000,000.');
+        });
+    </script>
+</body>
+</html>
