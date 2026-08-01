@@ -11,6 +11,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    width: 100%;
 }
 
 .studio-container {
@@ -26,6 +27,7 @@ body {
     background: #1e293b;
     border-bottom: 1px solid #334155;
     text-align: left;
+    width: 100%;
 }
 
 .studio-header h1 {
@@ -41,18 +43,20 @@ body {
 
 .workspace {
     flex: 1;
-    padding: 20px;
+    padding: 16px;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
     width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
+    max-width: 100%;
 }
 
 @media (min-width: 900px) {
     .workspace {
         grid-template-columns: 1fr 1fr;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px;
     }
 }
 
