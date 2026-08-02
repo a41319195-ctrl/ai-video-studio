@@ -18,6 +18,36 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentUser = null;
     let currentCoins = 0;
 
+    // Create Custom Modern Modal Container for Alerts & Prompts
+    const modalOverlay = document.createElement('div');
+    modalOverlay.id = 'customModalOverlay';
+    modalOverlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
+        display: none; justify-content: center; align-items: center; z-index: 10000;
+    `;
+    modalOverlay.innerHTML = `
+        <div id="customModalBox" style="background: #1e293b; border: 1px solid #334155; padding: 24px; border-radius: 12px; width: 380px; max-width: 90%; color: #f8fafc; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <h3 id="modalTitle" style="margin-bottom: 12px; font-size: 18px; color: #38bdf8;">Notice</h3>
+            <div id="modalBody" style="margin-bottom: 20px; font-size: 14px; color: #94a3b8; line-height: 1.5;"></div>
+            <div id="modalActionContainer"></div>
+        </div>
+    `;
+    document.body.appendChild(modalOverlay);
+
+    function showCustomAlert(title, message, callback) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalBody').innerHTML = message;
+        document.getElementById('modalActionContainer').innerHTML = `
+            <button id="modalOkBtn" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">OK</button>
+        `;
+        modalOverlay.style.display = 'flex';
+        document.getElementById('modalOkBtn').onclick = () => {
+            modalOverlay.style.display = 'none';
+            if (callback) callback();
+        };
+    }
+
     // Sidebar Toggle
     if (menuBtn && sidebar && closeMenu) {
         menuBtn.addEventListener('click', () => sidebar.classList.add('active'));
@@ -43,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (userProfile) userProfile.style.display = "flex";
                     if (userName) userName.textContent = user.displayName || user.email;
 
-                    // Load User Data & Setup Real-time Listener for Coins & Payments
+                    // Load User Data & Setup Free Starter Coins (25 Coins = 5 Free 30s Videos)
                     await syncUserData(user.uid, user.email);
                 } else {
                     currentUser = null;
@@ -62,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 await window.signInWithPopup(window.auth, window.googleProvider);
             } catch (error) {
                 console.error("Login Error:", error);
-                alert("Login failed. Please try again.");
+                showCustomAlert("Login Failed", "Unable to sign in with Google. Please try again.");
             }
         });
     }
@@ -83,41 +113,45 @@ document.addEventListener("DOMContentLoaded", () => {
             if (userSnap.exists()) {
                 currentCoins = userSnap.data().coins || 0;
             } else {
-                currentCoins = 15; // Free starter coins for new user
+                currentCoins = 25; // 25 Free Coins for New User (= 5 Free 30s Videos)
                 await window.setDoc(userRef, { coins: currentCoins, email: email });
+                showCustomAlert("🎁 Welcome Bonus!", "You have received **25 Free Coins**! You can create up to **5 free 30-second videos**.");
             }
             updateCoinDisplay();
-
-            // Real-time listener to check if Admin approved pending coins
-            // (Firestore onSnapshot can be added here for live auto-updating)
         } catch (error) {
             console.error("Error syncing user data:", error);
         }
     }
 
-    // Generate Button & Coin Deduction Logic
+    // Generate Button & Strict Free Duration Rule Logic
     if (generateBtn) {
         generateBtn.addEventListener('click', async () => {
             if (!currentUser) {
-                alert("Please login with Google first to generate videos!");
+                showCustomAlert("Authentication Required", "Please login with Google first to generate videos!");
                 return;
             }
 
             const promptValue = promptInput.value.trim();
             const resolution = document.getElementById('resolution').value;
-            const durationSec = videoDurationSelect ? parseInt(videoDurationSelect.value) : 300;
+            const durationSec = videoDurationSelect ? parseInt(videoDurationSelect.value) : 30;
             
             let coinCost = 5; // 30 sec Shorts/Reel
             if (durationSec === 120) coinCost = 10; // 1-2 min
             if (durationSec === 300) coinCost = 20; // Up to 5 min
 
+            // Strict Rule: Free users / starter coins can ONLY generate 30-second videos
+            if (durationSec > 30 && currentCoins <= 25) {
+                showCustomAlert("⚠️ Duration Restricted", "Free tier bonus coins can **only** be used for 30-second Shorts/Reels! Please buy a coin package to unlock longer video formats.");
+                return;
+            }
+
             if (!promptValue) {
-                alert('Please enter a description or prompt for your video!');
+                showCustomAlert("Prompt Missing", "Please enter a description or prompt for your video!");
                 return;
             }
 
             if (currentCoins < coinCost) {
-                alert(`❌ Insufficient Coins! You need ${coinCost} coins, but you have ${currentCoins}. Please buy coins to continue.`);
+                showCustomAlert("❌ Insufficient Coins", `You need ${coinCost} coins, but you have ${currentCoins}. Please recharge your balance to continue.`);
                 openRechargeModal();
                 return;
             }
@@ -150,60 +184,78 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Coin Recharge Modal & Firebase Payment Queue Integration
-    async function openRechargeModal() {
+    // Modern Recharge Modal for Package Selection & Payment Submission
+    function openRechargeModal() {
         if (!currentUser) {
-            alert("Please login first to buy coin packages!");
+            showCustomAlert("Login Required", "Please login first to buy coin packages!");
             return;
         }
 
-        let choice = prompt(
-            "Select a Coin Package to Recharge:\n\n" +
-            "1. $10  -> 140 Coins\n" +
-            "2. $20  -> 300 Coins (20 Bonus 🔥)\n" +
-            "3. $40  -> 630 Coins (70 Bonus 🔥🔥)\n" +
-            "4. $60  -> 1,000 Coins (160 Bonus 🔥🔥🔥)\n" +
-            "5. $120 -> 2,150 Coins (470 Massive Bonus 👑)\n\n" +
-            "Enter package number (1 to 5):", 
-            "2"
-        );
+        document.getElementById('modalTitle').textContent = "💳 Select Coin Package";
+        document.getElementById('modalBody').innerHTML = `
+            <div style="text-align: left; font-size: 13px; margin-bottom: 15px;">
+                <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Choose a Package:</label>
+                <select id="packageSelect" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 12px;">
+                    <option value="1">1. $10 -> 140 Coins</option>
+                    <option value="2" selected>2. $20 -> 300 Coins (20 Bonus 🔥)</option>
+                    <option value="3">3. $40 -> 630 Coins (70 Bonus 🔥🔥)</option>
+                    <option value="4">4. $60 -> 1,000 Coins (160 Bonus 🔥🔥🔥)</option>
+                    <option value="5">5. $120 -> 2,150 Coins (470 Massive Bonus 👑)</option>
+                </select>
+                <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Your Registered Email:</label>
+                <input type="email" id="rechargeEmailInput" value="${currentUser.email || ''}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box;">
+            </div>
+        `;
+        document.getElementById('modalActionContainer').innerHTML = `
+            <div style="display: flex; gap: 10px;">
+                <button id="cancelModalBtn" style="flex: 1; background: #475569; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cancel</button>
+                <button id="submitRechargeBtn" style="flex: 1; background: #22c55e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Submit Request</button>
+            </div>
+        `;
+        modalOverlay.style.display = 'flex';
 
-        if (choice !== null) {
+        document.getElementById('cancelModalBtn').onclick = () => {
+            modalOverlay.style.display = 'none';
+        };
+
+        document.getElementById('submitRechargeBtn').onclick = async () => {
+            const choice = document.getElementById('packageSelect').value;
+            const sellerEmail = document.getElementById('rechargeEmailInput').value.trim();
+
+            if (!sellerEmail) {
+                alert("Please enter a valid email address!");
+                return;
+            }
+
             let addedCoins = 0;
             let paidAmount = 0;
 
-            switch(choice.trim()) {
+            switch(choice) {
                 case '1': paidAmount = 10; addedCoins = 140; break;
                 case '2': paidAmount = 20; addedCoins = 300; break;
                 case '3': paidAmount = 40; addedCoins = 630; break;
                 case '4': paidAmount = 60; addedCoins = 1000; break;
                 case '5': paidAmount = 120; addedCoins = 2150; break;
-                default:
-                    alert("Invalid selection. Please try again.");
-                    return;
             }
 
-            let sellerEmail = prompt("Enter your registered email address for payment tracking & admin notification:", currentUser.email);
-            if (sellerEmail) {
-                try {
-                    // Send Payment Request to Firestore 'payments' collection for Admin Dashboard
-                    const paymentRef = window.doc(window.db, "payments", `${currentUser.uid}_${Date.now()}`);
-                    await window.setDoc(paymentRef, {
-                        uid: currentUser.uid,
-                        email: sellerEmail,
-                        amount: paidAmount,
-                        coins: addedCoins,
-                        status: "pending",
-                        timestamp: new Date().toISOString()
-                    });
+            try {
+                const paymentRef = window.doc(window.db, "payments", `${currentUser.uid}_${Date.now()}`);
+                await window.setDoc(paymentRef, {
+                    uid: currentUser.uid,
+                    email: sellerEmail,
+                    amount: paidAmount,
+                    coins: addedCoins,
+                    status: "pending",
+                    timestamp: new Date().toISOString()
+                });
 
-                    alert(`⏳ Payment request of $${paidAmount} submitted successfully!\nNotification sent to Admin Dashboard.\nOnce approved by Admin, 🪙 ${addedCoins} Coins will be automatically credited to your account.`);
-                } catch (error) {
-                    console.error("Error submitting payment:", error);
-                    alert("Failed to submit payment request. Try again.");
-                }
+                modalOverlay.style.display = 'none';
+                showCustomAlert("⏳ Payment Request Submitted", `Your request for $${paidAmount} has been sent to the Admin Dashboard.<br>Once verified, 🪙 ${addedCoins} Coins will be credited automatically!`);
+            } catch (error) {
+                console.error("Error submitting payment:", error);
+                alert("Failed to submit payment request. Try again.");
             }
-        }
+        };
     }
 
     function updateCoinDisplay() {
@@ -224,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Voice Command Simulation
+    // Voice Command Speech-to-Text
     if (micBtn) {
         micBtn.addEventListener('click', () => {
             if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
@@ -246,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 recognition.start();
             } else {
-                alert('Speech recognition is not supported on your browser. Please type your prompt.');
+                showCustomAlert("Not Supported", "Speech recognition is not supported on your browser. Please type your prompt.");
             }
         });
     }
