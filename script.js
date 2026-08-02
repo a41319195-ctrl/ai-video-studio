@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Firebase Auth State Listener & Real-time Coin Sync + Redirect Result Handling
+    // Firebase Auth State Listener & Real-time Coin Sync + Safe Redirect Handling
     setTimeout(async () => {
         if (window.auth && window.getRedirectResult) {
             try {
@@ -110,17 +110,80 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }, 1000);
 
-    // Google Login Trigger (Using signInWithRedirect for 100% mobile support)
+    // Google Login Trigger (With Email Fallback Option if it fails)
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
             try {
-                await window.signInWithRedirect(window.auth, window.googleProvider);
-            } catch (error) {
-                console.error("Login Error:", error);
-                showCustomAlert("Login Failed", "Unable to sign in with Google. Please try again.");
+                await window.signInWithPopup(window.auth, window.googleProvider);
+            } catch (popupError) {
+                console.warn("Popup failed, trying redirect...", popupError);
+                try {
+                    await window.signInWithRedirect(window.auth, window.googleProvider);
+                } catch (redirectError) {
+                    console.error("Google Login Failed completely:", redirectError);
+                    // Google fail hone par seedha Email/Password login modal khol do taaki user ka kaam na ruke!
+                    openEmailAuthModal();
+                }
             }
         });
     }
+
+    // --- NEW: Email & Password Auth Modal (Backup System) ---
+    function openEmailAuthModal() {
+        document.getElementById('modalTitle').textContent = "🔐 Email & Password Login";
+        document.getElementById('modalTitle').style.color = "#38bdf8";
+        document.getElementById('modalBody').innerHTML = `
+            <div style="text-align: left; font-size: 13px; margin-bottom: 15px;">
+                <p style="color: #f8fafc; margin-bottom: 10px; font-size: 12px;">Google login didn't work? No worries! Enter your email & password to continue.</p>
+                <label style="display:block; margin-bottom:4px; color:#f8fafc; font-weight:600;">Email Address:</label>
+                <input type="email" id="authEmail" placeholder="name@example.com" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 12px; box-sizing: border-box;">
+                
+                <label style="display:block; margin-bottom:4px; color:#f8fafc; font-weight:600;">Password:</label>
+                <input type="password" id="authPassword" placeholder="Enter password (min 6 chars)" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box;">
+            </div>
+        `;
+        document.getElementById('modalActionContainer').innerHTML = `
+            <div style="display: flex; gap: 10px; flex-direction: column;">
+                <button id="emailLoginBtn" style="background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">Login / Sign Up</button>
+                <button id="cancelEmailModal" style="background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 8px; border-radius: 6px; cursor: pointer; width: 100%;">Cancel</button>
+            </div>
+        `;
+        modalOverlay.style.display = 'flex';
+
+        document.getElementById('modalCloseBtn').onclick = () => { modalOverlay.style.display = 'none'; };
+        document.getElementById('cancelEmailModal').onclick = () => { modalOverlay.style.display = 'none'; };
+
+        document.getElementById('emailLoginBtn').onclick = async () => {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value.trim();
+
+            if (!email || !password) {
+                alert("Please enter both email and password!");
+                return;
+            }
+
+            try {
+                // Pehle Login try karega, agar account nahi hoga toh automatically Sign Up (Create) kar dega!
+                try {
+                    await window.signInWithEmailAndPassword(window.auth, email, password);
+                } catch (loginErr) {
+                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/wrong-password') {
+                        // Agar user nahi hai toh naya account bana lo
+                        await window.createUserWithEmailAndPassword(window.auth, email, password);
+                    } else {
+                        throw loginErr;
+                    }
+                }
+                modalOverlay.style.display = 'none';
+                showCustomAlert("Success", "Logged in successfully via Email!", true);
+            } catch (err) {
+                console.error("Email Auth Error:", err);
+                alert("Authentication Failed: " + err.message);
+            }
+        };
+    }
+
+    // Optional: Agar aap UI me ek chota sa text link ya button dena chahein jisse user bina Google ke direct email se login karna chahe toh yeh function call kar sakte hain.
 
     // Logout Trigger
     if (logoutBtn) {
@@ -153,7 +216,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (generateBtn) {
         generateBtn.addEventListener('click', async () => {
             if (!currentUser) {
-                showCustomAlert("Authentication Required", "Please login with Google first to generate videos!");
+                showCustomAlert("Authentication Required", "Please login first to generate videos!");
+                openEmailAuthModal(); // Prompt login modal if not logged in
                 return;
             }
 
@@ -212,6 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function openRechargeModal() {
         if (!currentUser) {
             showCustomAlert("Login Required", "Please login first to buy coin packages!");
+            openEmailAuthModal();
             return;
         }
 
@@ -239,13 +304,8 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         modalOverlay.style.display = 'flex';
 
-        document.getElementById('modalCloseBtn').onclick = () => {
-            modalOverlay.style.display = 'none';
-        };
-
-        document.getElementById('cancelModalBtn').onclick = () => {
-            modalOverlay.style.display = 'none';
-        };
+        document.getElementById('modalCloseBtn').onclick = () => { modalOverlay.style.display = 'none'; };
+        document.getElementById('cancelModalBtn').onclick = () => { modalOverlay.style.display = 'none'; };
 
         document.getElementById('submitRechargeBtn').onclick = async () => {
             const choice = document.getElementById('packageSelect').value;
@@ -306,6 +366,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Voice Command Speech-to-Text
     if (micBtn) {
+        micBtn.events && micBtn.addEventListener('click', () => { }); // safe check
         micBtn.addEventListener('click', () => {
             if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
