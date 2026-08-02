@@ -12,7 +12,14 @@
         <nav class="navbar">
             <button id="menuBtn" class="icon-btn">☰</button>
             <div class="logo">AI Video Studio</div>
-            <div></div> <!-- Spacer for balance alignment -->
+            <!-- Google Sign-In / User Profile Section in Navbar -->
+            <div id="authSection">
+                <button id="googleLoginBtn" class="btn-primary" style="padding: 6px 12px; font-size: 14px;">🔑 Login with Google</button>
+                <div id="userProfile" style="display: none; align-items: center; gap: 8px;">
+                    <span id="userName" style="font-size: 13px; font-weight: bold;"></span>
+                    <button id="logoutBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 12px;">Logout</button>
+                </div>
+            </div>
         </nav>
 
         <!-- Sidebar Menu -->
@@ -33,6 +40,10 @@
         <header class="studio-header">
             <h1>AI Video Studio</h1>
             <p>Transform text, voice, and images into cinematic masterpieces. (Cost varies by duration)</p>
+            <!-- Coin Balance Display -->
+            <div id="coinBalanceBox" style="margin-top: 10px; font-weight: bold; color: #ffcc00;">
+                🪙 Coins: <span id="userCoins">0</span>
+            </div>
         </header>
 
         <!-- Main Workspace -->
@@ -68,7 +79,6 @@
                         <select id="videoDuration">
                             <option value="30">Shorts / Reel (30 sec) - 5 Coins</option>
                             <option value="120">Standard (1-2 min) - 10 Coins</option>
-                            <option value="300" selected>Cinematic (Up to 5 min) - 20 Coins</option>
                         </select>
                     </div>
                 </div>
@@ -78,12 +88,48 @@
 
             <!-- Output Preview Section -->
             <section class="preview-section">
-                <div class="video-preview-box">
+                <div class="video-preview-box" id="previewBox" style="text-align: center;">
                     <p id="previewText">Your generated video will appear here...</p>
+                    <!-- Download button will appear dynamically here after video generation -->
                 </div>
             </section>
         </main>
     </div>
+
+    <!-- Firebase SDKs & Core Configuration Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
+            authDomain: "ai-video-studio-global.firebaseapp.com",
+            projectId: "ai-video-studio-global",
+            storageBucket: "ai-video-studio-global.firebasestorage.app",
+            messagingSenderId: "62203997603",
+            appId: "1:62203997603:web:9ce058c677c9e13e75fe16",
+            measurementId: "G-6D2C6T5HHH"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        window.auth = auth;
+        window.db = db;
+        window.googleProvider = provider;
+        window.signInWithPopup = signInWithPopup;
+        window.signOut = signOut;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+
+        console.log("🔥 Firebase Auth & DB Ready!");
+    </script>
+
     <script src="script.js"></script>
 </body>
 </html>
