@@ -41,7 +41,35 @@
             color: white;
             border-radius: 6px;
             font-size: 14px;
+            box-sizing: border-box;
         }
+
+        /* Modern Custom Popup Modal Overlay */
+        #customModalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .custom-modal-box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 24px;
+            border-radius: 12px;
+            width: 380px;
+            max-width: 90%;
+            color: #f8fafc;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
         .admin-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -129,6 +157,7 @@
             border: 1px solid #334155;
             color: white;
             border-radius: 6px;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -141,6 +170,15 @@
             <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password...">
             <button class="btn-primary" id="loginAdminBtn" style="width: 100%;">Login Dashboard</button>
             <p id="authError" style="color: #ef4444; font-size: 12px; margin-top: 10px; display: none;">Incorrect Password!</p>
+        </div>
+    </div>
+
+    <!-- Modern Dynamic Popup Modal -->
+    <div id="customModalOverlay">
+        <div class="custom-modal-box">
+            <h3 id="modalTitle" style="margin-bottom: 12px; font-size: 18px; color: #38bdf8;">Notice</h3>
+            <div id="modalBody" style="margin-bottom: 20px; font-size: 14px; color: #94a3b8; line-height: 1.5;"></div>
+            <div id="modalActionContainer"></div>
         </div>
     </div>
 
@@ -232,11 +270,29 @@
         const loginAdminBtn = document.getElementById('loginAdminBtn');
         const authError = document.getElementById('authError');
 
+        const customModalOverlay = document.getElementById('customModalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        const modalActionContainer = document.getElementById('modalActionContainer');
+
         const paymentQueueBody = document.getElementById('paymentQueueBody');
         const pendingCountDisplay = document.getElementById('pendingCount');
         const freeUserIdentifier = document.getElementById('freeUserIdentifier');
         const freeCoinsAmount = document.getElementById('freeCoinsAmount');
         const creditFreeCoinsBtn = document.getElementById('creditFreeCoinsBtn');
+
+        function showModal(title, message, callback) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = message;
+            modalActionContainer.innerHTML = `
+                <button id="modalOkBtn" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">OK</button>
+            `;
+            customModalOverlay.style.display = 'flex';
+            document.getElementById('modalOkBtn').onclick = () => {
+                customModalOverlay.style.display = 'none';
+                if (callback) callback();
+            };
+        }
 
         // Password Authentication Check
         loginAdminBtn.addEventListener('click', () => {
@@ -244,13 +300,12 @@
             if (enteredPassword === "Hak0786@") {
                 authOverlay.style.display = "none";
                 adminMainContent.style.display = "block";
-                loadPaymentRequests(); // Load data after login
+                loadPaymentRequests();
             } else {
                 authError.style.display = "block";
             }
         });
 
-        // Allow pressing Enter key for password login
         adminPasswordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 loginAdminBtn.click();
@@ -294,38 +349,36 @@
             }
         }
 
-        // Direct Free Coin Credit Logic (Supports both User UID or Email dynamically)
+        // Direct Free Coin Credit Logic
         creditFreeCoinsBtn.addEventListener('click', async () => {
             const identifier = freeUserIdentifier.value.trim();
             const coinsToAdd = parseInt(freeCoinsAmount.value);
 
             if (!identifier) {
-                alert("Please enter a User Email or User UID!");
+                showModal("Input Missing", "Please enter a User Email or User UID!");
                 return;
             }
 
             if (isNaN(coinsToAdd) || coinsToAdd <= 0) {
-                alert("Please enter a valid coin amount!");
+                showModal("Invalid Amount", "Please enter a valid coin amount!");
                 return;
             }
 
             try {
                 let targetUid = identifier;
 
-                // Check if the input is an email instead of UID
                 if (identifier.includes("@")) {
                     const usersRef = collection(db, "users");
                     const q = query(usersRef, where("email", "==", identifier));
                     const querySnap = await getDocs(q);
 
                     if (querySnap.empty) {
-                        alert(`❌ No user found with email: ${identifier}`);
+                        showModal("User Not Found", `❌ No user found with email: ${identifier}`);
                         return;
                     }
-                    targetUid = querySnap.docs[0].id; // Get the UID of that user
+                    targetUid = querySnap.docs[0].id;
                 }
 
-                // Reference user document in Firestore
                 const userRef = doc(db, "users", targetUid);
                 const userSnap = await getDoc(userRef);
 
@@ -336,19 +389,18 @@
                     if (userSnap.data().email) userEmail = userSnap.data().email;
                 }
 
-                // Add free coins
                 const updatedCoins = currentCoins + coinsToAdd;
                 await setDoc(userRef, { coins: updatedCoins, email: userEmail }, { merge: true });
 
-                alert(`🎉 Success! 🪙 ${coinsToAdd} Free Coins credited to user (${userEmail}).\nNew Balance: ${updatedCoins.toLocaleString()} Coins`);
+                showModal("🎉 Success!", `🪙 ${coinsToAdd} Free Coins credited to user (${userEmail}).<br>New Balance: ${updatedCoins.toLocaleString()} Coins`);
                 freeUserIdentifier.value = "";
             } catch (error) {
                 console.error("Error crediting free coins:", error);
-                alert("Failed to credit coins. Check console for details.");
+                showModal("Error", "Failed to credit coins. Check console for details.");
             }
         });
 
-        // Approve Payment: Adds coins to user and deletes request from queue
+        // Approve Payment (Attached to window for global inline onclick support)
         window.approvePayment = async function(paymentId, uid, coinsToAdd) {
             try {
                 const userRef = doc(db, "users", uid);
@@ -363,23 +415,25 @@
                 await setDoc(userRef, { coins: updatedCoins }, { merge: true });
                 await deleteDoc(doc(db, "payments", paymentId));
 
-                alert(`✅ Payment Approved Successfully!\n🪙 ${coinsToAdd} Coins credited to user.`);
-                loadPaymentRequests();
+                showModal("✅ Payment Approved", `🪙 ${coinsToAdd} Coins credited to user successfully!`, () => {
+                    loadPaymentRequests();
+                });
             } catch (error) {
                 console.error("Error approving payment:", error);
-                alert("Failed to approve payment. Check console.");
+                showModal("Error", "Failed to approve payment. Check console.");
             }
         }
 
-        // Reject Payment: Removes request from queue without adding coins
+        // Reject Payment (Attached to window for global inline onclick support)
         window.rejectPayment = async function(paymentId) {
             try {
                 await deleteDoc(doc(db, "payments", paymentId));
-                alert("❌ Payment request rejected and removed.");
-                loadPaymentRequests();
+                showModal("❌ Payment Rejected", "Payment request rejected and removed successfully.", () => {
+                    loadPaymentRequests();
+                });
             } catch (error) {
                 console.error("Error rejecting payment:", error);
-                alert("Failed to reject payment.");
+                showModal("Error", "Failed to reject payment.");
             }
         }
     </script>
