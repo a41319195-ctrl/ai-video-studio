@@ -68,6 +68,7 @@
             color: #f8fafc;
             text-align: center;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
         }
 
         .admin-container {
@@ -165,7 +166,7 @@
 
     <!-- Security Login Password Popup Overlay -->
     <div id="authOverlay">
-        <div class="auth-box">
+        <div class="auth-box" style="position: relative;">
             <h2>🔐 Admin Access</h2>
             <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password...">
             <button class="btn-primary" id="loginAdminBtn" style="width: 100%;">Login Dashboard</button>
@@ -176,6 +177,12 @@
     <!-- Modern Dynamic Popup Modal -->
     <div id="customModalOverlay">
         <div class="custom-modal-box">
+            <!-- Close / Cut Button -->
+            <button id="modalCloseBtn" style="
+                position: absolute; top: 12px; right: 12px; background: transparent;
+                border: none; color: #94a3b8; font-size: 20px; cursor: pointer; font-weight: bold;
+            ">&times;</button>
+
             <h3 id="modalTitle" style="margin-bottom: 12px; font-size: 18px; color: #38bdf8;">Notice</h3>
             <div id="modalBody" style="margin-bottom: 20px; font-size: 14px; color: #94a3b8; line-height: 1.5;"></div>
             <div id="modalActionContainer"></div>
@@ -274,6 +281,7 @@
         const modalTitle = document.getElementById('modalTitle');
         const modalBody = document.getElementById('modalBody');
         const modalActionContainer = document.getElementById('modalActionContainer');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
 
         const paymentQueueBody = document.getElementById('paymentQueueBody');
         const pendingCountDisplay = document.getElementById('pendingCount');
@@ -288,9 +296,16 @@
                 <button id="modalOkBtn" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">OK</button>
             `;
             customModalOverlay.style.display = 'flex';
-            document.getElementById('modalOkBtn').onclick = () => {
+
+            const closeModal = () => {
                 customModalOverlay.style.display = 'none';
                 if (callback) callback();
+            };
+
+            modalCloseBtn.onclick = closeModal;
+            document.getElementById('modalOkBtn').onclick = closeModal;
+            customModalOverlay.onclick = (e) => {
+                if (e.target === customModalOverlay) closeModal();
             };
         }
 
@@ -425,7 +440,7 @@
         }
 
         // Reject Payment (Attached to window for global inline onclick support)
-        window.rejectPayment = async function(paymentId) {
+        window.rejectPayment = async function(paymentId, uid) {
             try {
                 await deleteDoc(doc(db, "payments", paymentId));
                 showModal("❌ Payment Rejected", "Payment request rejected and removed successfully.", () => {
