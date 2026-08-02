@@ -295,7 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modalActionContainer').innerHTML = `
             <div style="display: flex; gap: 10px;">
                 <button id="cancelModalBtn" style="flex: 1; background: #475569; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cancel</button>
-                <button id="proceedToPayBtn" style="flex: 1; background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Proceed to Payoneer</button>
+                <button id="proceedToPayBtn" style="flex: 1; background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Proceed to Crypto Payment</button>
             </div>
         `;
         modalOverlay.style.display = 'flex';
@@ -314,39 +314,40 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // Step 2: Open Payoneer Payment Link & QR Code Screen
-            openPayoneerUploadModal(paidAmount, addedCoins, userEmail);
+            // Step 2: Open Crypto USDT (BEP20 Only) Payment Screen & QR Code
+            openCryptoUploadModal(paidAmount, addedCoins, userEmail);
         };
     }
 
-    // Step 2: Payoneer Link, QR Code & Screenshot Upload Screen
-    function openPayoneerUploadModal(paidAmount, addedCoins, userEmail) {
-        // यहाँ आपका जनरेट किया हुआ Payoneer पेमेंट लिंक सेट किया गया है
-        const payoneerPaymentLink = "https://link.payoneer.com/Token?t=72B6BBBDBEAC479EBCCAC508F959439C&src=pl";
+    // Step 2: Crypto USDT (BEP20 Only) Payment & Screenshot Upload Screen
+    function openCryptoUploadModal(paidAmount, addedCoins, userEmail) {
+        // आपका Binance USDT (BEP20) वॉलेट एड्रेस
+        const cryptoWalletAddress = "0x836d59168b7e9d29aabca5ab67cce52a63e2bda2";
 
-        document.getElementById('modalTitle').textContent = "🌐 Payoneer Global Payment";
+        document.getElementById('modalTitle').textContent = "🪙 USDT Crypto Payment (BEP20 Only)";
         document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
             <div style="font-size: 13px; margin-bottom: 12px; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed #38bdf8; text-align: left;">
-                <strong style="color: #38bdf8;">Step 1: Pay via Link or QR Code</strong><br>
-                Selected Plan Amount: <strong style="color: #22c55e; font-size: 16px;">$${paidAmount}</strong> (For <b>${addedCoins} Coins</b>)<br><br>
-                
-                <!-- Payoneer Direct Link Button -->
-                <a href="${payoneerPaymentLink}" target="_blank" style="display: block; background: #3b82f6; color: white; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-bottom: 12px;">
-                    🔗 Click Here to Pay via Payoneer
-                </a>
+                <strong style="color: #38bdf8;">Step 1: Send USDT via BEP20 Network</strong><br>
+                Plan Amount: <strong style="color: #22c55e; font-size: 16px;">$${paidAmount} USDT</strong> (For <b>${addedCoins} Coins</b>)<br>
+                <span style="color: #fACC15; font-size: 11px; font-weight: bold;">⚠️ Note: Only send USDT using BSC (BEP20) Network!</span><br><br>
 
                 <!-- QR Code Display -->
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <p style="font-size: 11px; color: #94a3b8; margin-bottom: 6px;">Or Scan QR Code with your Mobile Banking App / Payoneer:</p>
-                    <!-- यहाँ QR कोड इमेज का बेस64 या डायरेक्ट पाथ जोड़ा गया है -->
-                    <img src="_AI Video Studio Subscription.png" alt="Payoneer QR Code" style="width: 140px; height: 140px; background: white; padding: 6px; border-radius: 6px; border: 2px solid #334155;">
+                    <p style="font-size: 11px; color: #94a3b8; margin-bottom: 6px;">Scan QR Code using Binance / Trust Wallet:</p>
+                    <img src="_AI Video Studio Subscription.png" alt="Crypto QR Code" style="width: 140px; height: 140px; background: white; padding: 6px; border-radius: 6px; border: 2px solid #334155;">
+                </div>
+
+                <!-- Wallet Address Box -->
+                <p style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Wallet Address (BEP20):</p>
+                <div style="background: #1e293b; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 11px; word-break: break-all; color: #38bdf8; border: 1px solid #475569;">
+                    ${cryptoWalletAddress}
                 </div>
             </div>
 
             <div style="font-size: 13px; margin-bottom: 12px; text-align: left;">
                 <strong style="color: #38bdf8;">Step 2: Upload Payment Screenshot</strong><br>
-                <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">After completing the payment from your bank/mobile app, upload the transaction receipt screenshot here.</p>
+                <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">After successful transfer, upload your transaction screenshot/receipt below.</p>
                 <input type="file" id="paymentScreenshotInput" accept="image/*" style="width: 100%; padding: 8px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box; font-size: 12px;">
             </div>
         `;
@@ -387,13 +388,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         email: userEmail,
                         amount: parseInt(paidAmount),
                         coins: parseInt(addedCoins),
-                        method: "Payoneer Link & QR",
+                        method: "USDT Crypto (BEP20)",
                         screenshot: base64Image,
                         status: "pending",
                         timestamp: new Date().toISOString()
                     });
 
-                    showCustomAlert("⏳ Request Submitted Successfully!", `Your payment receipt has been uploaded and sent to the Admin.<br>The admin will verify your screenshot and credit 🪙 <b>${addedCoins} Coins</b> to your account shortly!`, true);
+                    showCustomAlert("⏳ Request Submitted Successfully!", `Your crypto payment receipt has been uploaded and sent to the Admin.<br>The admin will verify your transaction and credit 🪙 <b>${addedCoins} Coins</b> to your account shortly!`, true);
                 };
 
                 reader.onerror = (error) => {
