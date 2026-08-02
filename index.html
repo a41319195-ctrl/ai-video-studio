@@ -13,7 +13,7 @@
             <button id="menuBtn" class="icon-btn">☰</button>
             <div class="logo">AI Video Studio</div>
             <!-- Google Sign-In / User Profile Section in Navbar -->
-            <div id="authSection">
+            <div id="authSection" style="display: flex; gap: 8px; align-items: center;">
                 <button id="googleLoginBtn" class="btn-primary" style="padding: 6px 12px; font-size: 14px;">🔑 Login with Google</button>
                 <div id="userProfile" style="display: none; align-items: center; gap: 8px;">
                     <span id="userName" style="font-size: 13px; font-weight: bold;"></span>
@@ -79,6 +79,7 @@
                         <select id="videoDuration">
                             <option value="30">Shorts / Reel (30 sec) - 5 Coins</option>
                             <option value="120">Standard (1-2 min) - 10 Coins</option>
+                            <option value="300">Cinematic (5 min) - 20 Coins</option>
                         </select>
                     </div>
                 </div>
@@ -99,7 +100,7 @@
     <!-- Firebase SDKs & Core Configuration Setup -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -117,17 +118,22 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
+        // Expose to window for script.js
         window.auth = auth;
         window.db = db;
         window.googleProvider = provider;
         window.signInWithPopup = signInWithPopup;
+        window.signInWithRedirect = signInWithRedirect;
+        window.getRedirectResult = getRedirectResult;
         window.signOut = signOut;
         window.onAuthStateChanged = onAuthStateChanged;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
         window.doc = doc;
         window.getDoc = getDoc;
         window.setDoc = setDoc;
 
-        console.log("🔥 Firebase Auth & DB Ready!");
+        console.log("🔥 Firebase Auth & DB Ready with Email/Password & Google Support!");
     </script>
 
     <script src="script.js"></script>
