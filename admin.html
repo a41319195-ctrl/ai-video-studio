@@ -6,11 +6,48 @@
     <title>Admin Dashboard - AI Video Studio</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Admin Security Overlay */
+        #authOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .auth-box {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            text-align: center;
+            width: 320px;
+        }
+        .auth-box h2 {
+            margin-bottom: 16px;
+            color: #f8fafc;
+            font-size: 20px;
+        }
+        .auth-box input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: white;
+            border-radius: 6px;
+            font-size: 14px;
+        }
         .admin-container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             width: 100%;
+            display: none; /* Initially hidden until authenticated */
         }
         .stats-grid {
             display: grid;
@@ -76,9 +113,37 @@
             background: #ef4444;
             color: white;
         }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
+
+    <!-- Security Login Password Popup Overlay -->
+    <div id="authOverlay">
+        <div class="auth-box">
+            <h2>🔐 Admin Access</h2>
+            <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password...">
+            <button class="btn-primary" id="loginAdminBtn" style="width: 100%;">Login Dashboard</button>
+            <p id="authError" style="color: #ef4444; font-size: 12px; margin-top: 10px; display: none;">Incorrect Password!</p>
+        </div>
+    </div>
+
     <div class="studio-container">
         <!-- Navbar -->
         <nav class="navbar">
@@ -87,12 +152,12 @@
             <div></div>
         </nav>
 
-        <div class="admin-container">
+        <div class="admin-container" id="adminMainContent">
             <!-- Stats Overview -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>Active User / Admin Status</h3>
-                    <div class="value" id="adminStatusDisplay">🟢 Live DB Connected</div>
+                    <h3>Active Database Status</h3>
+                    <div class="value" id="adminStatusDisplay">🟢 Live & Secure</div>
                 </div>
                 <div class="stat-card">
                     <h3>Pending Payment Requests</h3>
@@ -100,7 +165,23 @@
                 </div>
                 <div class="stat-card">
                     <h3>System Status</h3>
-                    <div class="value" style="color: #22c55e;">🟢 Online & Secure</div>
+                    <div class="value" style="color: #22c55e;">🟢 Online</div>
+                </div>
+            </div>
+
+            <!-- Direct Free Coin Credit Box (By UID or Email) -->
+            <div class="section-box">
+                <h2>🎁 Direct Free Coin Credit (For Friends / Family)</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>User Identifier (Enter User Email OR User UID):</label>
+                        <input type="text" id="freeUserIdentifier" placeholder="e.g., friend@gmail.com or User UID">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Coins to Credit:</label>
+                        <input type="number" id="freeCoinsAmount" placeholder="e.g., 500" value="500">
+                    </div>
+                    <button class="btn-primary" id="creditFreeCoinsBtn" style="height: 41px;">➕ Credit Coins</button>
                 </div>
             </div>
 
@@ -130,7 +211,7 @@
     <!-- Firebase SDKs & Admin Automation Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
@@ -145,8 +226,36 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        const authOverlay = document.getElementById('authOverlay');
+        const adminMainContent = document.getElementById('adminMainContent');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const loginAdminBtn = document.getElementById('loginAdminBtn');
+        const authError = document.getElementById('authError');
+
         const paymentQueueBody = document.getElementById('paymentQueueBody');
         const pendingCountDisplay = document.getElementById('pendingCount');
+        const freeUserIdentifier = document.getElementById('freeUserIdentifier');
+        const freeCoinsAmount = document.getElementById('freeCoinsAmount');
+        const creditFreeCoinsBtn = document.getElementById('creditFreeCoinsBtn');
+
+        // Password Authentication Check
+        loginAdminBtn.addEventListener('click', () => {
+            const enteredPassword = adminPasswordInput.value.trim();
+            if (enteredPassword === "Hak0786@") {
+                authOverlay.style.display = "none";
+                adminMainContent.style.display = "block";
+                loadPaymentRequests(); // Load data after login
+            } else {
+                authError.style.display = "block";
+            }
+        });
+
+        // Allow pressing Enter key for password login
+        adminPasswordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginAdminBtn.click();
+            }
+        });
 
         // Function to load and display pending payment requests from Firestore
         async function loadPaymentRequests() {
@@ -185,10 +294,63 @@
             }
         }
 
+        // Direct Free Coin Credit Logic (Supports both User UID or Email dynamically)
+        creditFreeCoinsBtn.addEventListener('click', async () => {
+            const identifier = freeUserIdentifier.value.trim();
+            const coinsToAdd = parseInt(freeCoinsAmount.value);
+
+            if (!identifier) {
+                alert("Please enter a User Email or User UID!");
+                return;
+            }
+
+            if (isNaN(coinsToAdd) || coinsToAdd <= 0) {
+                alert("Please enter a valid coin amount!");
+                return;
+            }
+
+            try {
+                let targetUid = identifier;
+
+                // Check if the input is an email instead of UID
+                if (identifier.includes("@")) {
+                    const usersRef = collection(db, "users");
+                    const q = query(usersRef, where("email", "==", identifier));
+                    const querySnap = await getDocs(q);
+
+                    if (querySnap.empty) {
+                        alert(`❌ No user found with email: ${identifier}`);
+                        return;
+                    }
+                    targetUid = querySnap.docs[0].id; // Get the UID of that user
+                }
+
+                // Reference user document in Firestore
+                const userRef = doc(db, "users", targetUid);
+                const userSnap = await getDoc(userRef);
+
+                let currentCoins = 0;
+                let userEmail = identifier;
+                if (userSnap.exists()) {
+                    currentCoins = userSnap.data().coins || 0;
+                    if (userSnap.data().email) userEmail = userSnap.data().email;
+                }
+
+                // Add free coins
+                const updatedCoins = currentCoins + coinsToAdd;
+                await setDoc(userRef, { coins: updatedCoins, email: userEmail }, { merge: true });
+
+                alert(`🎉 Success! 🪙 ${coinsToAdd} Free Coins credited to user (${userEmail}).\nNew Balance: ${updatedCoins.toLocaleString()} Coins`);
+                freeUserIdentifier.value = "";
+            } catch (error) {
+                console.error("Error crediting free coins:", error);
+                alert("Failed to credit coins. Check console for details.");
+            }
+        });
+
         // Approve Payment: Adds coins to user and deletes request from queue
         window.approvePayment = async function(paymentId, uid, coinsToAdd) {
             try {
-                // 1. Fetch user current coins from Firestore
                 const userRef = doc(db, "users", uid);
                 const userSnap = await getDoc(userRef);
                 
@@ -197,15 +359,12 @@
                     currentCoins = userSnap.data().coins || 0;
                 }
 
-                // 2. Add new coins
                 const updatedCoins = currentCoins + coinsToAdd;
                 await setDoc(userRef, { coins: updatedCoins }, { merge: true });
-
-                // 3. Delete or update payment request so it disappears from table
                 await deleteDoc(doc(db, "payments", paymentId));
 
                 alert(`✅ Payment Approved Successfully!\n🪙 ${coinsToAdd} Coins credited to user.`);
-                loadPaymentRequests(); // Refresh table
+                loadPaymentRequests();
             } catch (error) {
                 console.error("Error approving payment:", error);
                 alert("Failed to approve payment. Check console.");
@@ -217,15 +376,12 @@
             try {
                 await deleteDoc(doc(db, "payments", paymentId));
                 alert("❌ Payment request rejected and removed.");
-                loadPaymentRequests(); // Refresh table
+                loadPaymentRequests();
             } catch (error) {
                 console.error("Error rejecting payment:", error);
                 alert("Failed to reject payment.");
             }
         }
-
-        // Initial Load
-        loadPaymentRequests();
     </script>
 </body>
 </html>
