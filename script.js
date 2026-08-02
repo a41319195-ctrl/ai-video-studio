@@ -323,6 +323,9 @@ document.addEventListener("DOMContentLoaded", () => {
     function openCryptoUploadModal(paidAmount, addedCoins, userEmail) {
         // आपका Binance USDT (BEP20) वॉलेट एड्रेस
         const cryptoWalletAddress = "0x836d59168b7e9d29aabca5ab67cce52a63e2bda2";
+        
+        // Google API से ऑटोमैटिक QR कोड जनरेट करने का लिंक (ताकि इमेज गायब न हो)
+        const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${cryptoWalletAddress}`;
 
         document.getElementById('modalTitle').textContent = "🪙 USDT Crypto Payment (BEP20 Only)";
         document.getElementById('modalTitle').style.color = "#38bdf8";
@@ -332,10 +335,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 Plan Amount: <strong style="color: #22c55e; font-size: 16px;">$${paidAmount} USDT</strong> (For <b>${addedCoins} Coins</b>)<br>
                 <span style="color: #fACC15; font-size: 11px; font-weight: bold;">⚠️ Note: Only send USDT using BSC (BEP20) Network!</span><br><br>
 
-                <!-- QR Code Display -->
+                <!-- Auto-Generated QR Code -->
                 <div style="text-align: center; margin-bottom: 10px;">
                     <p style="font-size: 11px; color: #94a3b8; margin-bottom: 6px;">Scan QR Code using Binance / Trust Wallet:</p>
-                    <img src="_AI Video Studio Subscription.png" alt="Crypto QR Code" style="width: 140px; height: 140px; background: white; padding: 6px; border-radius: 6px; border: 2px solid #334155;">
+                    <img src="${qrCodeApiUrl}" alt="Crypto QR Code" style="width: 140px; height: 140px; background: white; padding: 6px; border-radius: 6px; border: 2px solid #334155;">
                 </div>
 
                 <!-- Wallet Address Box -->
