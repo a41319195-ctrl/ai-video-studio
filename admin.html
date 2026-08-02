@@ -91,8 +91,8 @@
             <!-- Stats Overview -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>Current User Coin Balance</h3>
-                    <div class="value" id="adminCoinDisplay">🪙 1,000,000</div>
+                    <h3>Active User / Admin Status</h3>
+                    <div class="value" id="adminStatusDisplay">🟢 Live DB Connected</div>
                 </div>
                 <div class="stat-card">
                     <h3>Pending Payment Requests</h3>
@@ -104,23 +104,14 @@
                 </div>
             </div>
 
-            <!-- Coin Management Section -->
-            <div class="section-box">
-                <h2>Quick Coin Management</h2>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                    <button class="btn-primary" style="width: auto;" id="add1000Coins">➕ Add 1,000 Coins to User</button>
-                    <button class="btn-secondary" style="flex: unset;" id="resetCoinsBtn">🔄 Reset Coins to Default (1M)</button>
-                </div>
-            </div>
-
             <!-- Payment Approval Queue -->
             <div class="section-box">
-                <h2>Coin Recharge & Payment Queue</h2>
+                <h2>Coin Recharge & Payment Queue (Real-Time Firestore)</h2>
                 <table>
                     <thead>
                         <tr>
                             <th>User Email</th>
-                            <th>Package / Amount</th>
+                            <th>Amount Paid</th>
                             <th>Coins to Credit</th>
                             <th>Status</th>
                             <th>Action</th>
@@ -128,14 +119,7 @@
                     </thead>
                     <tbody id="paymentQueueBody">
                         <tr>
-                            <td>admin@gbpay.global</td>
-                            <td>$20 (Standard Pack)</td>
-                            <td>🪙 300 Coins</td>
-                            <td style="color: #eab308;">Pending Verification</td>
-                            <td>
-                                <button class="btn-action btn-approve" onclick="alert('Payment Approved! Coins credited.')">Approve</button>
-                                <button class="btn-action btn-reject" onclick="alert('Payment Rejected.')">Reject</button>
-                            </td>
+                            <td colspan="5" style="text-align: center; color: #94a3b8;">Loading pending payments from database...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -143,27 +127,105 @@
         </div>
     </div>
 
-    <script>
-        // Load and display current coins from localStorage
-        const adminCoinDisplay = document.getElementById('adminCoinDisplay');
-        let currentCoins = localStorage.getItem('ai_studio_coins') ? parseInt(localStorage.getItem('ai_studio_coins')) : 1000000;
-        adminCoinDisplay.textContent = `🪙 ${currentCoins.toLocaleString()}`;
+    <!-- Firebase SDKs & Admin Automation Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
-        // Add Coins button logic
-        document.getElementById('add1000Coins').addEventListener('click', () => {
-            currentCoins += 1000;
-            localStorage.setItem('ai_studio_coins', currentCoins);
-            adminCoinDisplay.textContent = `🪙 ${currentCoins.toLocaleString()}`;
-            alert('Successfully added 1,000 coins!');
-        });
+        const firebaseConfig = {
+            apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
+            authDomain: "ai-video-studio-global.firebaseapp.com",
+            projectId: "ai-video-studio-global",
+            storageBucket: "ai-video-studio-global.firebasestorage.app",
+            messagingSenderId: "62203997603",
+            appId: "1:62203997603:web:9ce058c677c9e13e75fe16",
+            measurementId: "G-6D2C6T5HHH"
+        };
 
-        // Reset Coins button logic
-        document.getElementById('resetCoinsBtn').addEventListener('click', () => {
-            currentCoins = 1000000;
-            localStorage.setItem('ai_studio_coins', currentCoins);
-            adminCoinDisplay.textContent = `🪙 ${currentCoins.toLocaleString()}`;
-            alert('Coin balance reset to 1,000,000.');
-        });
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const paymentQueueBody = document.getElementById('paymentQueueBody');
+        const pendingCountDisplay = document.getElementById('pendingCount');
+
+        // Function to load and display pending payment requests from Firestore
+        async function loadPaymentRequests() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "payments"));
+                paymentQueueBody.innerHTML = "";
+                let count = 0;
+
+                querySnapshot.forEach((paymentDoc) => {
+                    const data = paymentDoc.data();
+                    if (data.status === "pending") {
+                        count++;
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${data.email}</td>
+                            <td>$${data.amount}</td>
+                            <td>🪙 ${data.coins} Coins</td>
+                            <td style="color: #eab308;">Pending Verification</td>
+                            <td>
+                                <button class="btn-action btn-approve" onclick="approvePayment('${paymentDoc.id}', '${data.uid}', ${data.coins})">Approve</button>
+                                <button class="btn-action btn-reject" onclick="rejectPayment('${paymentDoc.id}')">Reject</button>
+                            </td>
+                        `;
+                        paymentQueueBody.appendChild(row);
+                    }
+                });
+
+                if (count === 0) {
+                    paymentQueueBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8;">No pending payment requests found.</td></tr>`;
+                }
+                pendingCountDisplay.textContent = `${count} Requests`;
+
+            } catch (error) {
+                console.error("Error loading payments:", error);
+                paymentQueueBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444;">Error loading payment queue.</td></tr>`;
+            }
+        }
+
+        // Approve Payment: Adds coins to user and deletes request from queue
+        window.approvePayment = async function(paymentId, uid, coinsToAdd) {
+            try {
+                // 1. Fetch user current coins from Firestore
+                const userRef = doc(db, "users", uid);
+                const userSnap = await getDoc(userRef);
+                
+                let currentCoins = 0;
+                if (userSnap.exists()) {
+                    currentCoins = userSnap.data().coins || 0;
+                }
+
+                // 2. Add new coins
+                const updatedCoins = currentCoins + coinsToAdd;
+                await setDoc(userRef, { coins: updatedCoins }, { merge: true });
+
+                // 3. Delete or update payment request so it disappears from table
+                await deleteDoc(doc(db, "payments", paymentId));
+
+                alert(`✅ Payment Approved Successfully!\n🪙 ${coinsToAdd} Coins credited to user.`);
+                loadPaymentRequests(); // Refresh table
+            } catch (error) {
+                console.error("Error approving payment:", error);
+                alert("Failed to approve payment. Check console.");
+            }
+        }
+
+        // Reject Payment: Removes request from queue without adding coins
+        window.rejectPayment = async function(paymentId) {
+            try {
+                await deleteDoc(doc(db, "payments", paymentId));
+                alert("❌ Payment request rejected and removed.");
+                loadPaymentRequests(); // Refresh table
+            } catch (error) {
+                console.error("Error rejecting payment:", error);
+                alert("Failed to reject payment.");
+            }
+        }
+
+        // Initial Load
+        loadPaymentRequests();
     </script>
 </body>
 </html>
