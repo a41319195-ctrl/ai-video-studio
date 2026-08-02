@@ -29,8 +29,9 @@ document.addEventListener("DOMContentLoaded", () => {
     modalOverlay.innerHTML = `
         <div id="customModalBox" style="
             background: #1e293b; border: 1px solid #334155; padding: 24px;
-            border-radius: 12px; width: 420px; max-width: 90%; color: #f8fafc;
+            border-radius: 12px; width: 450px; max-width: 90%; color: #f8fafc;
             text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;
+            max-height: 90vh; overflow-y: auto;
         ">
             <!-- Close / Cut Button -->
             <button id="modalCloseBtn" style="
@@ -294,7 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modalActionContainer').innerHTML = `
             <div style="display: flex; gap: 10px;">
                 <button id="cancelModalBtn" style="flex: 1; background: #475569; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cancel</button>
-                <button id="proceedToPayBtn" style="flex: 1; background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Proceed to Payment</button>
+                <button id="proceedToPayBtn" style="flex: 1; background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Proceed to Payoneer</button>
             </div>
         `;
         modalOverlay.style.display = 'flex';
@@ -304,7 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.getElementById('proceedToPayBtn').onclick = () => {
             const packageData = document.getElementById('packageSelect').value.split('|');
-            const choiceId = packageData[0];
             const paidAmount = packageData[1];
             const addedCoins = packageData[2];
             const userEmail = document.getElementById('rechargeEmailInput').value.trim();
@@ -314,42 +314,47 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // Step 2: Open Payoneer Account & Screenshot Upload Page/Modal
+            // Step 2: Open Payoneer Payment Link & QR Code Screen
             openPayoneerUploadModal(paidAmount, addedCoins, userEmail);
         };
     }
 
-    // Step 2: Payoneer Details & Screenshot Upload Screen
+    // Step 2: Payoneer Link, QR Code & Screenshot Upload Screen
     function openPayoneerUploadModal(paidAmount, addedCoins, userEmail) {
-        // [NOTE]: यहाँ अपनी Payoneer Email / Account Details डाल सकते हैं जो नीचे शो होगी
-        const payoneerAccountEmail = "your-payoneer-email@domain.com"; 
-        const payoneerAccountId = "YOUR_PAYONEER_ID_OR_ACCOUNT_NUMBER";
+        // यहाँ आपका जनरेट किया हुआ Payoneer पेमेंट लिंक सेट किया गया है
+        const payoneerPaymentLink = "https://link.payoneer.com/Token?t=72B6BBBDBEAC479EBCCAC508F959439C&src=pl";
 
-        document.getElementById('modalTitle').textContent = "🌐 Payoneer Payment & Proof";
+        document.getElementById('modalTitle').textContent = "🌐 Payoneer Global Payment";
         document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
-            <div style="font-size: 13px; margin-bottom: 12px; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed #38bdf8;">
-                <strong style="color: #38bdf8;">Step 1: Send Local Payment</strong><br>
-                Transfer exactly <strong style="color: #22c55e;">$${paidAmount}</strong> to our Payoneer Account below using your local bank:<br>
-                • Payoneer Email: <code style="color: #ffcc00; background: #1e293b; padding: 2px 4px; border-radius: 4px;">${payoneerAccountEmail}</code><br>
-                • Payoneer ID: <code style="color: #ffcc00; background: #1e293b; padding: 2px 4px; border-radius: 4px;">${payoneerAccountId}</code>
+            <div style="font-size: 13px; margin-bottom: 12px; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed #38bdf8; text-align: left;">
+                <strong style="color: #38bdf8;">Step 1: Pay via Link or QR Code</strong><br>
+                Selected Plan Amount: <strong style="color: #22c55e; font-size: 16px;">$${paidAmount}</strong> (For <b>${addedCoins} Coins</b>)<br><br>
+                
+                <!-- Payoneer Direct Link Button -->
+                <a href="${payoneerPaymentLink}" target="_blank" style="display: block; background: #3b82f6; color: white; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-bottom: 12px;">
+                    🔗 Click Here to Pay via Payoneer
+                </a>
+
+                <!-- QR Code Display -->
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <p style="font-size: 11px; color: #94a3b8; margin-bottom: 6px;">Or Scan QR Code with your Mobile Banking App / Payoneer:</p>
+                    <!-- यहाँ QR कोड इमेज का बेस64 या डायरेक्ट पाथ जोड़ा गया है -->
+                    <img src="_AI Video Studio Subscription.png" alt="Payoneer QR Code" style="width: 140px; height: 140px; background: white; padding: 6px; border-radius: 6px; border: 2px solid #334155;">
+                </div>
             </div>
 
-            <div style="font-size: 13px; margin-bottom: 12px;">
+            <div style="font-size: 13px; margin-bottom: 12px; text-align: left;">
                 <strong style="color: #38bdf8;">Step 2: Upload Payment Screenshot</strong><br>
-                <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">After completing the payment, take a screenshot of the receipt/transaction and upload it here.</p>
+                <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">After completing the payment from your bank/mobile app, upload the transaction receipt screenshot here.</p>
                 <input type="file" id="paymentScreenshotInput" accept="image/*" style="width: 100%; padding: 8px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box; font-size: 12px;">
-            </div>
-
-            <div style="font-size: 12px; color: #f8fafc; background: #1e293b; padding: 6px 10px; border-radius: 4px;">
-                📦 Package: <b>${addedCoins} Coins</b> | 💵 Amount: <b>$${paidAmount}</b>
             </div>
         `;
 
         document.getElementById('modalActionContainer').innerHTML = `
             <div style="display: flex; gap: 10px;">
                 <button id="backToPackageBtn" style="flex: 1; background: #475569; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Back</button>
-                <button id="submitPaymentProofBtn" style="flex: 1; background: #22c55e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Submit Request</button>
+                <button id="submitPaymentProofBtn" style="flex: 1; background: #22c55e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Submit Proof</button>
             </div>
         `;
 
@@ -371,21 +376,19 @@ document.addEventListener("DOMContentLoaded", () => {
             submitBtn.disabled = true;
 
             try {
-                // Convert Image file to Base64 string so it can be saved directly inside Firestore document safely
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = async () => {
                     const base64Image = reader.result;
 
-                    // Save payment data along with screenshot base64 to Firestore `payments` collection
                     const paymentRef = window.doc(window.db, "payments", `${currentUser.uid}_${Date.now()}`);
                     await window.setDoc(paymentRef, {
                         uid: currentUser.uid,
                         email: userEmail,
                         amount: parseInt(paidAmount),
                         coins: parseInt(addedCoins),
-                        method: "Payoneer",
-                        screenshot: base64Image, // Screen shot saved for Admin verification
+                        method: "Payoneer Link & QR",
+                        screenshot: base64Image,
                         status: "pending",
                         timestamp: new Date().toISOString()
                     });
@@ -396,14 +399,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 reader.onerror = (error) => {
                     console.error("Error reading file:", error);
                     alert("Failed to read image file. Try again.");
-                    submitBtn.textContent = "Submit Request";
+                    submitBtn.textContent = "Submit Proof";
                     submitBtn.disabled = false;
                 };
 
             } catch (error) {
                 console.error("Error submitting payment:", error);
                 showCustomAlert("Error", "Failed to submit payment proof. Try again.");
-                submitBtn.textContent = "Submit Request";
+                submitBtn.textContent = "Submit Proof";
                 submitBtn.disabled = false;
             }
         };
