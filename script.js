@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentUser = null;
     let currentCoins = 0;
 
-    // Create Custom Modern Modal Container for Alerts & Prompts
+    // --- Create Custom Modern Modal Container with Close (×) Button ---
     const modalOverlay = document.createElement('div');
     modalOverlay.id = 'customModalOverlay';
     modalOverlay.style.cssText = `
@@ -27,7 +27,17 @@ document.addEventListener("DOMContentLoaded", () => {
         display: none; justify-content: center; align-items: center; z-index: 10000;
     `;
     modalOverlay.innerHTML = `
-        <div id="customModalBox" style="background: #1e293b; border: 1px solid #334155; padding: 24px; border-radius: 12px; width: 380px; max-width: 90%; color: #f8fafc; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <div id="customModalBox" style="
+            background: #1e293b; border: 1px solid #334155; padding: 24px;
+            border-radius: 12px; width: 380px; max-width: 90%; color: #f8fafc;
+            text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;
+        ">
+            <!-- Close / Cut Button -->
+            <button id="modalCloseBtn" style="
+                position: absolute; top: 12px; right: 12px; background: transparent;
+                border: none; color: #94a3b8; font-size: 20px; cursor: pointer; font-weight: bold;
+            ">&times;</button>
+
             <h3 id="modalTitle" style="margin-bottom: 12px; font-size: 18px; color: #38bdf8;">Notice</h3>
             <div id="modalBody" style="margin-bottom: 20px; font-size: 14px; color: #94a3b8; line-height: 1.5;"></div>
             <div id="modalActionContainer"></div>
@@ -35,16 +45,24 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.body.appendChild(modalOverlay);
 
-    function showCustomAlert(title, message, callback) {
+    function showCustomAlert(title, message, isSuccess = false, callback = null) {
         document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalTitle').style.color = isSuccess ? '#22c55e' : '#38bdf8';
         document.getElementById('modalBody').innerHTML = message;
         document.getElementById('modalActionContainer').innerHTML = `
-            <button id="modalOkBtn" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">OK</button>
+            <button id="modalOkBtn" style="background: ${isSuccess ? '#22c55e' : '#3b82f6'}; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">OK</button>
         `;
         modalOverlay.style.display = 'flex';
-        document.getElementById('modalOkBtn').onclick = () => {
+
+        const closeModal = () => {
             modalOverlay.style.display = 'none';
             if (callback) callback();
+        };
+
+        document.getElementById('modalCloseBtn').onclick = closeModal;
+        document.getElementById('modalOkBtn').onclick = closeModal;
+        modalOverlay.onclick = (e) => {
+            if (e.target === modalOverlay) closeModal();
         };
     }
 
@@ -63,8 +81,16 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Firebase Auth State Listener & Real-time Coin Sync
-    setTimeout(() => {
+    // Firebase Auth State Listener & Real-time Coin Sync + Redirect Result Handling
+    setTimeout(async () => {
+        if (window.auth && window.getRedirectResult) {
+            try {
+                await window.getRedirectResult(window.auth);
+            } catch (error) {
+                console.error("Redirect Login Error:", error);
+            }
+        }
+
         if (window.onAuthStateChanged && window.auth) {
             window.onAuthStateChanged(window.auth, async (user) => {
                 if (user) {
@@ -73,7 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (userProfile) userProfile.style.display = "flex";
                     if (userName) userName.textContent = user.displayName || user.email;
 
-                    // Load User Data & Setup Free Starter Coins (25 Coins = 5 Free 30s Videos)
                     await syncUserData(user.uid, user.email);
                 } else {
                     currentUser = null;
@@ -85,11 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }, 1000);
 
-    // Google Login Trigger
+    // Google Login Trigger (Using signInWithRedirect for 100% mobile support)
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
             try {
-                await window.signInWithPopup(window.auth, window.googleProvider);
+                await window.signInWithRedirect(window.auth, window.googleProvider);
             } catch (error) {
                 console.error("Login Error:", error);
                 showCustomAlert("Login Failed", "Unable to sign in with Google. Please try again.");
@@ -101,6 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             await window.signOut(window.auth);
+            showCustomAlert("Logged Out", "You have been successfully logged out.", true);
         });
     }
 
@@ -113,9 +139,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (userSnap.exists()) {
                 currentCoins = userSnap.data().coins || 0;
             } else {
-                currentCoins = 25; // 25 Free Coins for New User (= 5 Free 30s Videos)
+                currentCoins = 25; // 25 Free Coins for New User
                 await window.setDoc(userRef, { coins: currentCoins, email: email });
-                showCustomAlert("🎁 Welcome Bonus!", "You have received **25 Free Coins**! You can create up to **5 free 30-second videos**.");
+                showCustomAlert("🎁 Welcome Bonus!", "You have received **25 Free Coins**! You can create up to **5 free 30-second videos**.", true);
             }
             updateCoinDisplay();
         } catch (error) {
@@ -135,11 +161,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const resolution = document.getElementById('resolution').value;
             const durationSec = videoDurationSelect ? parseInt(videoDurationSelect.value) : 30;
             
-            let coinCost = 5; // 30 sec Shorts/Reel
-            if (durationSec === 120) coinCost = 10; // 1-2 min
-            if (durationSec === 300) coinCost = 20; // Up to 5 min
+            let coinCost = 5; 
+            if (durationSec === 120) coinCost = 10; 
+            if (durationSec === 300) coinCost = 20; 
 
-            // Strict Rule: Free users / starter coins can ONLY generate 30-second videos
             if (durationSec > 30 && currentCoins <= 25) {
                 showCustomAlert("⚠️ Duration Restricted", "Free tier bonus coins can **only** be used for 30-second Shorts/Reels! Please buy a coin package to unlock longer video formats.");
                 return;
@@ -166,7 +191,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             `;
 
-            // Simulate Video Generation Output with "Download" Button
             setTimeout(() => {
                 previewText.innerHTML = `
                     <div style="color: #22c55e; font-weight: 600; margin-bottom: 10px;">
@@ -192,6 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         document.getElementById('modalTitle').textContent = "💳 Select Coin Package";
+        document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
             <div style="text-align: left; font-size: 13px; margin-bottom: 15px;">
                 <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Choose a Package:</label>
@@ -214,6 +239,10 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         modalOverlay.style.display = 'flex';
 
+        document.getElementById('modalCloseBtn').onclick = () => {
+            modalOverlay.style.display = 'none';
+        };
+
         document.getElementById('cancelModalBtn').onclick = () => {
             modalOverlay.style.display = 'none';
         };
@@ -223,7 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const sellerEmail = document.getElementById('rechargeEmailInput').value.trim();
 
             if (!sellerEmail) {
-                alert("Please enter a valid email address!");
+                showCustomAlert("Error", "Please enter a valid email address!");
                 return;
             }
 
@@ -249,11 +278,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     timestamp: new Date().toISOString()
                 });
 
-                modalOverlay.style.display = 'none';
-                showCustomAlert("⏳ Payment Request Submitted", `Your request for $${paidAmount} has been sent to the Admin Dashboard.<br>Once verified, 🪙 ${addedCoins} Coins will be credited automatically!`);
+                showCustomAlert("⏳ Payment Request Submitted", `Your request for $${paidAmount} has been sent to the Admin Dashboard.<br>Once verified, 🪙 ${addedCoins} Coins will be credited automatically!`, true);
             } catch (error) {
                 console.error("Error submitting payment:", error);
-                alert("Failed to submit payment request. Try again.");
+                showCustomAlert("Error", "Failed to submit payment request. Try again.");
             }
         };
     }
