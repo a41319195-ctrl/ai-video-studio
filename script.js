@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modalOverlay.innerHTML = `
         <div id="customModalBox" style="
             background: #1e293b; border: 1px solid #334155; padding: 24px;
-            border-radius: 12px; width: 380px; max-width: 90%; color: #f8fafc;
+            border-radius: 12px; width: 420px; max-width: 90%; color: #f8fafc;
             text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;
         ">
             <!-- Close / Cut Button -->
@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ">&times;</button>
 
             <h3 id="modalTitle" style="margin-bottom: 12px; font-size: 18px; color: #38bdf8;">Notice</h3>
-            <div id="modalBody" style="margin-bottom: 20px; font-size: 14px; color: #94a3b8; line-height: 1.5;"></div>
+            <div id="modalBody" style="margin-bottom: 20px; font-size: 14px; color: #94a3b8; line-height: 1.5; text-align: left;"></div>
             <div id="modalActionContainer"></div>
         </div>
     `;
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Firebase Auth State Listener & Real-time Coin Sync + Safe Redirect Handling
+    // Firebase Auth State Listener & Real-time Coin Sync
     setTimeout(async () => {
         if (window.auth && window.getRedirectResult) {
             try {
@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }, 1000);
 
-    // Google Login Trigger (With Email Fallback Option if it fails)
+    // Google Login Trigger
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
             try {
@@ -121,20 +121,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     await window.signInWithRedirect(window.auth, window.googleProvider);
                 } catch (redirectError) {
                     console.error("Google Login Failed completely:", redirectError);
-                    // Google fail hone par seedha Email/Password login modal khol do taaki user ka kaam na ruke!
                     openEmailAuthModal();
                 }
             }
         });
     }
 
-    // --- NEW: Email & Password Auth Modal (Backup System) ---
+    // Email & Password Auth Modal (Backup System)
     function openEmailAuthModal() {
         document.getElementById('modalTitle').textContent = "🔐 Email & Password Login";
         document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
-            <div style="text-align: left; font-size: 13px; margin-bottom: 15px;">
-                <p style="color: #f8fafc; margin-bottom: 10px; font-size: 12px;">Google login didn't work? No worries! Enter your email & password to continue.</p>
+            <div style="font-size: 13px; margin-bottom: 15px;">
+                <p style="color: #f8fafc; margin-bottom: 10px; font-size: 12px;">Google login didn't work? Enter your email & password to continue.</p>
                 <label style="display:block; margin-bottom:4px; color:#f8fafc; font-weight:600;">Email Address:</label>
                 <input type="email" id="authEmail" placeholder="name@example.com" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 12px; box-sizing: border-box;">
                 
@@ -163,12 +162,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             try {
-                // Pehle Login try karega, agar account nahi hoga toh automatically Sign Up (Create) kar dega!
                 try {
                     await window.signInWithEmailAndPassword(window.auth, email, password);
                 } catch (loginErr) {
                     if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/wrong-password') {
-                        // Agar user nahi hai toh naya account bana lo
                         await window.createUserWithEmailAndPassword(window.auth, email, password);
                     } else {
                         throw loginErr;
@@ -182,8 +179,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
     }
-
-    // Optional: Agar aap UI me ek chota sa text link ya button dena chahein jisse user bina Google ke direct email se login karna chahe toh yeh function call kar sakte hain.
 
     // Logout Trigger
     if (logoutBtn) {
@@ -217,7 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
         generateBtn.addEventListener('click', async () => {
             if (!currentUser) {
                 showCustomAlert("Authentication Required", "Please login first to generate videos!");
-                openEmailAuthModal(); // Prompt login modal if not logged in
+                openEmailAuthModal();
                 return;
             }
 
@@ -272,7 +267,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Modern Recharge Modal for Package Selection & Payment Submission
+    // Step 1: Open Package Selection Modal
     function openRechargeModal() {
         if (!currentUser) {
             showCustomAlert("Login Required", "Please login first to buy coin packages!");
@@ -283,14 +278,14 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modalTitle').textContent = "💳 Select Coin Package";
         document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
-            <div style="text-align: left; font-size: 13px; margin-bottom: 15px;">
+            <div style="font-size: 13px; margin-bottom: 15px;">
                 <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Choose a Package:</label>
                 <select id="packageSelect" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 12px;">
-                    <option value="1">1. $10 -> 140 Coins</option>
-                    <option value="2" selected>2. $20 -> 300 Coins (20 Bonus 🔥)</option>
-                    <option value="3">3. $40 -> 630 Coins (70 Bonus 🔥🔥)</option>
-                    <option value="4">4. $60 -> 1,000 Coins (160 Bonus 🔥🔥🔥)</option>
-                    <option value="5">5. $120 -> 2,150 Coins (470 Massive Bonus 👑)</option>
+                    <option value="1|10|140">$10 -> 140 Coins</option>
+                    <option value="2|20|300" selected>$20 -> 300 Coins (20 Bonus 🔥)</option>
+                    <option value="3|40|630">$40 -> 630 Coins (70 Bonus 🔥🔥)</option>
+                    <option value="4|60|1000">$60 -> 1,000 Coins (160 Bonus 🔥🔥🔥)</option>
+                    <option value="5|120|2150">$120 -> 2,150 Coins (470 Massive Bonus 👑)</option>
                 </select>
                 <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Your Registered Email:</label>
                 <input type="email" id="rechargeEmailInput" value="${currentUser.email || ''}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box;">
@@ -299,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modalActionContainer').innerHTML = `
             <div style="display: flex; gap: 10px;">
                 <button id="cancelModalBtn" style="flex: 1; background: #475569; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cancel</button>
-                <button id="submitRechargeBtn" style="flex: 1; background: #22c55e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Submit Request</button>
+                <button id="proceedToPayBtn" style="flex: 1; background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Proceed to Payment</button>
             </div>
         `;
         modalOverlay.style.display = 'flex';
@@ -307,41 +302,109 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modalCloseBtn').onclick = () => { modalOverlay.style.display = 'none'; };
         document.getElementById('cancelModalBtn').onclick = () => { modalOverlay.style.display = 'none'; };
 
-        document.getElementById('submitRechargeBtn').onclick = async () => {
-            const choice = document.getElementById('packageSelect').value;
-            const sellerEmail = document.getElementById('rechargeEmailInput').value.trim();
+        document.getElementById('proceedToPayBtn').onclick = () => {
+            const packageData = document.getElementById('packageSelect').value.split('|');
+            const choiceId = packageData[0];
+            const paidAmount = packageData[1];
+            const addedCoins = packageData[2];
+            const userEmail = document.getElementById('rechargeEmailInput').value.trim();
 
-            if (!sellerEmail) {
-                showCustomAlert("Error", "Please enter a valid email address!");
+            if (!userEmail) {
+                alert("Please enter a valid email address!");
                 return;
             }
 
-            let addedCoins = 0;
-            let paidAmount = 0;
+            // Step 2: Open Payoneer Account & Screenshot Upload Page/Modal
+            openPayoneerUploadModal(paidAmount, addedCoins, userEmail);
+        };
+    }
 
-            switch(choice) {
-                case '1': paidAmount = 10; addedCoins = 140; break;
-                case '2': paidAmount = 20; addedCoins = 300; break;
-                case '3': paidAmount = 40; addedCoins = 630; break;
-                case '4': paidAmount = 60; addedCoins = 1000; break;
-                case '5': paidAmount = 120; addedCoins = 2150; break;
+    // Step 2: Payoneer Details & Screenshot Upload Screen
+    function openPayoneerUploadModal(paidAmount, addedCoins, userEmail) {
+        // [NOTE]: यहाँ अपनी Payoneer Email / Account Details डाल सकते हैं जो नीचे शो होगी
+        const payoneerAccountEmail = "your-payoneer-email@domain.com"; 
+        const payoneerAccountId = "YOUR_PAYONEER_ID_OR_ACCOUNT_NUMBER";
+
+        document.getElementById('modalTitle').textContent = "🌐 Payoneer Payment & Proof";
+        document.getElementById('modalTitle').style.color = "#38bdf8";
+        document.getElementById('modalBody').innerHTML = `
+            <div style="font-size: 13px; margin-bottom: 12px; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed #38bdf8;">
+                <strong style="color: #38bdf8;">Step 1: Send Local Payment</strong><br>
+                Transfer exactly <strong style="color: #22c55e;">$${paidAmount}</strong> to our Payoneer Account below using your local bank:<br>
+                • Payoneer Email: <code style="color: #ffcc00; background: #1e293b; padding: 2px 4px; border-radius: 4px;">${payoneerAccountEmail}</code><br>
+                • Payoneer ID: <code style="color: #ffcc00; background: #1e293b; padding: 2px 4px; border-radius: 4px;">${payoneerAccountId}</code>
+            </div>
+
+            <div style="font-size: 13px; margin-bottom: 12px;">
+                <strong style="color: #38bdf8;">Step 2: Upload Payment Screenshot</strong><br>
+                <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">After completing the payment, take a screenshot of the receipt/transaction and upload it here.</p>
+                <input type="file" id="paymentScreenshotInput" accept="image/*" style="width: 100%; padding: 8px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box; font-size: 12px;">
+            </div>
+
+            <div style="font-size: 12px; color: #f8fafc; background: #1e293b; padding: 6px 10px; border-radius: 4px;">
+                📦 Package: <b>${addedCoins} Coins</b> | 💵 Amount: <b>$${paidAmount}</b>
+            </div>
+        `;
+
+        document.getElementById('modalActionContainer').innerHTML = `
+            <div style="display: flex; gap: 10px;">
+                <button id="backToPackageBtn" style="flex: 1; background: #475569; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Back</button>
+                <button id="submitPaymentProofBtn" style="flex: 1; background: #22c55e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Submit Request</button>
+            </div>
+        `;
+
+        document.getElementById('backToPackageBtn').onclick = () => {
+            openRechargeModal();
+        };
+
+        document.getElementById('submitPaymentProofBtn').onclick = async () => {
+            const fileInput = document.getElementById('paymentScreenshotInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please upload the payment screenshot/receipt!");
+                return;
             }
 
-            try {
-                const paymentRef = window.doc(window.db, "payments", `${currentUser.uid}_${Date.now()}`);
-                await window.setDoc(paymentRef, {
-                    uid: currentUser.uid,
-                    email: sellerEmail,
-                    amount: paidAmount,
-                    coins: addedCoins,
-                    status: "pending",
-                    timestamp: new Date().toISOString()
-                });
+            const submitBtn = document.getElementById('submitPaymentProofBtn');
+            submitBtn.textContent = "Uploading & Submitting...";
+            submitBtn.disabled = true;
 
-                showCustomAlert("⏳ Payment Request Submitted", `Your request for $${paidAmount} has been sent to the Admin Dashboard.<br>Once verified, 🪙 ${addedCoins} Coins will be credited automatically!`, true);
+            try {
+                // Convert Image file to Base64 string so it can be saved directly inside Firestore document safely
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    const base64Image = reader.result;
+
+                    // Save payment data along with screenshot base64 to Firestore `payments` collection
+                    const paymentRef = window.doc(window.db, "payments", `${currentUser.uid}_${Date.now()}`);
+                    await window.setDoc(paymentRef, {
+                        uid: currentUser.uid,
+                        email: userEmail,
+                        amount: parseInt(paidAmount),
+                        coins: parseInt(addedCoins),
+                        method: "Payoneer",
+                        screenshot: base64Image, // Screen shot saved for Admin verification
+                        status: "pending",
+                        timestamp: new Date().toISOString()
+                    });
+
+                    showCustomAlert("⏳ Request Submitted Successfully!", `Your payment receipt has been uploaded and sent to the Admin.<br>The admin will verify your screenshot and credit 🪙 <b>${addedCoins} Coins</b> to your account shortly!`, true);
+                };
+
+                reader.onerror = (error) => {
+                    console.error("Error reading file:", error);
+                    alert("Failed to read image file. Try again.");
+                    submitBtn.textContent = "Submit Request";
+                    submitBtn.disabled = false;
+                };
+
             } catch (error) {
                 console.error("Error submitting payment:", error);
-                showCustomAlert("Error", "Failed to submit payment request. Try again.");
+                showCustomAlert("Error", "Failed to submit payment proof. Try again.");
+                submitBtn.textContent = "Submit Request";
+                submitBtn.disabled = false;
             }
         };
     }
@@ -366,7 +429,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Voice Command Speech-to-Text
     if (micBtn) {
-        micBtn.events && micBtn.addEventListener('click', () => { }); // safe check
         micBtn.addEventListener('click', () => {
             if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
