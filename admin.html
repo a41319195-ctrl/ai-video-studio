@@ -6,7 +6,6 @@
     <title>Admin Dashboard - AI Video Studio</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Admin Security Overlay */
         #authOverlay {
             position: fixed;
             top: 0;
@@ -44,8 +43,6 @@
             font-size: 14px;
             box-sizing: border-box;
         }
-
-        /* Modern Custom Popup Modal Overlay */
         #customModalOverlay {
             position: fixed;
             top: 0;
@@ -71,7 +68,6 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             position: relative;
         }
-
         .admin-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -180,18 +176,69 @@
             font-size: 20px;
             font-weight: bold;
         }
+        .transaction-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #0f172a;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .transaction-log::-webkit-scrollbar {
+            width: 4px;
+        }
+        .transaction-log::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .transaction-log::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .tx-item {
+            padding: 4px 8px;
+            border-bottom: 1px solid #1e293b;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .tx-item .tx-positive {
+            color: #22c55e;
+        }
+        .tx-item .tx-negative {
+            color: #ef4444;
+        }
+        .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .refresh-btn:hover {
+            background: #2563eb;
+        }
+        .rate-info {
+            font-size: 12px;
+            color: #94a3b8;
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #334155;
+        }
+        .rate-info span {
+            color: #ffcc00;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Security Login Password Popup Overlay with Close (×) Button -->
     <div id="authOverlay">
         <div class="auth-box">
             <button id="closeAuthModalBtn" style="
                 position: absolute; top: 10px; right: 12px; background: transparent;
                 border: none; color: #94a3b8; font-size: 22px; cursor: pointer; font-weight: bold;
             ">&times;</button>
-
             <h2>🔐 Admin Access</h2>
             <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password...">
             <button class="btn-primary" id="loginAdminBtn" style="width: 100%;">Login Dashboard</button>
@@ -199,14 +246,12 @@
         </div>
     </div>
 
-    <!-- Modern Dynamic Popup Modal -->
     <div id="customModalOverlay">
         <div class="custom-modal-box">
             <button id="modalCloseBtn" style="
                 position: absolute; top: 12px; right: 12px; background: transparent;
                 border: none; color: #94a3b8; font-size: 20px; cursor: pointer; font-weight: bold;
             ">&times;</button>
-
             <h3 id="modalTitle" style="margin-bottom: 12px; font-size: 18px; color: #38bdf8;">Notice</h3>
             <div id="modalBody" style="margin-bottom: 20px; font-size: 14px; color: #94a3b8; line-height: 1.5;"></div>
             <div id="modalActionContainer"></div>
@@ -214,26 +259,33 @@
     </div>
 
     <div class="studio-container">
-        <!-- Navbar -->
         <nav class="navbar">
             <a href="index.html" class="icon-btn" style="text-decoration: none; font-size: 18px;">🏠 Back to Studio</a>
             <div class="logo">👑 Admin Dashboard</div>
-            <div></div>
+            <button class="refresh-btn" id="refreshBtn">🔄 Refresh</button>
         </nav>
 
         <div class="admin-container" id="adminMainContent">
-            <!-- Admin Coins Display -->
-            <div class="admin-coins-display">
-                <span class="label">🏦 Admin Coin Vault:</span>
-                <span class="value" id="adminCoinsDisplay">🪙 1,000,000</span>
-                <span style="color: #94a3b8; font-size: 13px; margin-left: auto;">(System Reserve)</span>
+            <!-- Rate Info -->
+            <div class="rate-info">
+                📊 <strong>Current Rates:</strong> 
+                Video: 30s=<span>20</span> coins, 1-2min=<span>50</span> coins, 5min=<span>100</span> coins | 
+                Music: 30s=<span>2</span>, 1-2min=<span>4</span>, 5min=<span>8</span> coins | 
+                Packages: $10=<span>85</span>, $20=<span>190</span>, $40=<span>400</span>, $60=<span>675</span> coins
             </div>
 
-            <!-- Stats Overview -->
+            <div class="admin-coins-display">
+                <span class="label">🏦 Admin Coin Vault (System Reserve):</span>
+                <span class="value" id="adminCoinsDisplay">🪙 1,000,000</span>
+                <span style="color: #94a3b8; font-size: 13px; margin-left: auto;">
+                    <span id="walletStatus">🟢 Live</span>
+                </span>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>Active Database Status</h3>
-                    <div class="value" id="adminStatusDisplay">🟢 Live & Secure</div>
+                    <h3>Admin Wallet Balance</h3>
+                    <div class="value" id="walletBalanceDisplay">1,000,000</div>
                 </div>
                 <div class="stat-card">
                     <h3>Pending Payment Requests</h3>
@@ -245,23 +297,31 @@
                 </div>
             </div>
 
-            <!-- Direct Free Coin Credit Box (By UID or Email) -->
             <div class="section-box">
-                <h2>🎁 Direct Free Coin Credit (For Friends / Family)</h2>
+                <h2>📊 Live Transaction Log <span style="font-size: 12px; color: #94a3b8;">(Coin Flow)</span></h2>
+                <div class="transaction-log" id="transactionLog">
+                    <div class="tx-item" style="color: #f8fafc;">🔄 Initializing transaction monitor...</div>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <h2>🎁 Direct Free Coin Credit <span style="font-size: 12px; color: #ef4444;">(Deducts from Admin Wallet)</span></h2>
                 <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: flex-end;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label>User Identifier (Enter User Email OR User UID):</label>
-                        <input type="text" id="freeUserIdentifier" placeholder="e.g., friend@gmail.com or User UID">
+                        <label>User Identifier (Email or UID):</label>
+                        <input type="text" id="freeUserIdentifier" placeholder="e.g., friend@gmail.com">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Coins to Credit:</label>
                         <input type="number" id="freeCoinsAmount" placeholder="e.g., 500" value="500">
                     </div>
-                    <button class="btn-primary" id="creditFreeCoinsBtn" style="height: 41px;">➕ Credit 🪙 A Coins</button>
+                    <button class="btn-primary" id="creditFreeCoinsBtn" style="height: 41px;">➕ Credit & Deduct</button>
+                </div>
+                <div style="margin-top: 8px; font-size: 12px; color: #94a3b8;">
+                    ⚡ This will deduct coins from the admin wallet and credit to the user.
                 </div>
             </div>
 
-            <!-- Payment Approval Queue -->
             <div class="section-box">
                 <h2>Coin Recharge & Payment Queue (Real-Time Firestore)</h2>
                 <table>
@@ -277,7 +337,7 @@
                     </thead>
                     <tbody id="paymentQueueBody">
                         <tr>
-                            <td colspan="6" style="text-align: center; color: #94a3b8;">Loading pending payments from database...</td>
+                            <td colspan="6" style="text-align: center; color: #94a3b8;">Loading pending payments...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -285,10 +345,9 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs & Admin Automation Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
@@ -302,6 +361,9 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        const ADMIN_WALLET_ID = "admin_wallet";
+        const ADMIN_PASSWORD = "Hak0786@";
 
         const authOverlay = document.getElementById('authOverlay');
         const closeAuthModalBtn = document.getElementById('closeAuthModalBtn');
@@ -321,16 +383,67 @@
         const freeUserIdentifier = document.getElementById('freeUserIdentifier');
         const freeCoinsAmount = document.getElementById('freeCoinsAmount');
         const creditFreeCoinsBtn = document.getElementById('creditFreeCoinsBtn');
-
-        // Admin coins display - 1 Million
         const adminCoinsDisplay = document.getElementById('adminCoinsDisplay');
-        if (adminCoinsDisplay) {
-            adminCoinsDisplay.textContent = '🪙 1,000,000';
+        const walletBalanceDisplay = document.getElementById('walletBalanceDisplay');
+        const transactionLog = document.getElementById('transactionLog');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        let currentAdminBalance = 0;
+        let transactionHistory = [];
+
+        async function getAdminWalletBalance() {
+            try {
+                const walletRef = doc(db, "system", ADMIN_WALLET_ID);
+                const walletSnap = await getDoc(walletRef);
+                return walletSnap.exists() ? walletSnap.data().totalCoins || 1000000 : 1000000;
+            } catch (error) {
+                console.error("Error getting admin wallet:", error);
+                return 1000000;
+            }
         }
 
-        closeAuthModalBtn.addEventListener('click', () => {
-            authOverlay.style.display = "none";
-        });
+        async function updateAdminWallet(newBalance) {
+            try {
+                const walletRef = doc(db, "system", ADMIN_WALLET_ID);
+                await setDoc(walletRef, {
+                    totalCoins: newBalance,
+                    lastUpdated: new Date().toISOString()
+                }, { merge: true });
+                return newBalance;
+            } catch (error) {
+                console.error("Error updating admin wallet:", error);
+                throw error;
+            }
+        }
+
+        async function deductFromAdminWallet(amount) {
+            const currentBalance = await getAdminWalletBalance();
+            if (currentBalance < amount) {
+                throw new Error("Admin wallet insufficient balance!");
+            }
+            const newBalance = currentBalance - amount;
+            await updateAdminWallet(newBalance);
+            addTransactionLog(`💰 DEDUCT: -${amount} coins from admin wallet`, 'negative');
+            return newBalance;
+        }
+
+        async function addUserCoins(uid, amount) {
+            try {
+                const userRef = doc(db, "users", uid);
+                const userSnap = await getDoc(userRef);
+                let currentCoins = userSnap.exists() ? userSnap.data().coins || 0 : 0;
+                
+                await deductFromAdminWallet(amount);
+                
+                const newBalance = currentCoins + amount;
+                await setDoc(userRef, { coins: newBalance }, { merge: true });
+                addTransactionLog(`👤 USER CREDIT: +${amount} coins to ${uid}`, 'positive');
+                return newBalance;
+            } catch (error) {
+                console.error("Error adding user coins:", error);
+                throw error;
+            }
+        }
 
         function showModal(title, message, callback) {
             modalTitle.textContent = title;
@@ -352,22 +465,32 @@
             };
         }
 
-        loginAdminBtn.addEventListener('click', () => {
-            const enteredPassword = adminPasswordInput.value.trim();
-            if (enteredPassword === "Hak0786@") {
-                authOverlay.style.display = "none";
-                adminMainContent.style.display = "block";
-                loadPaymentRequests();
-            } else {
-                authError.style.display = "block";
-            }
-        });
+        function addTransactionLog(message, type = 'neutral') {
+            const time = new Date().toLocaleTimeString();
+            transactionHistory.unshift({ time, message, type });
+            if (transactionHistory.length > 50) transactionHistory.pop();
+            renderTransactionLog();
+        }
 
-        adminPasswordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                loginAdminBtn.click();
+        function renderTransactionLog() {
+            if (!transactionLog) return;
+            if (transactionHistory.length === 0) {
+                transactionLog.innerHTML = `<div class="tx-item" style="color: #94a3b8;">No transactions yet.</div>`;
+                return;
             }
-        });
+            transactionLog.innerHTML = transactionHistory.map(entry => {
+                const typeClass = entry.type === 'positive' ? 'tx-positive' : 
+                                  entry.type === 'negative' ? 'tx-negative' : '';
+                return `<div class="tx-item ${typeClass}">[${entry.time}] ${entry.message}</div>`;
+            }).join('');
+        }
+
+        function updateAdminDisplay(balance) {
+            const formatted = balance.toLocaleString();
+            if (adminCoinsDisplay) adminCoinsDisplay.textContent = `🪙 ${formatted}`;
+            if (walletBalanceDisplay) walletBalanceDisplay.textContent = formatted;
+            currentAdminBalance = balance;
+        }
 
         async function loadPaymentRequests() {
             try {
@@ -389,12 +512,12 @@
                         row.innerHTML = `
                             <td>${data.email || 'N/A'}</td>
                             <td>$${data.amount || 0} USDT</td>
-                            <td>🪙 A ${data.coins || 0} Coins</td>
+                            <td>🪙 ${data.coins || 0} Coins</td>
                             <td>${screenshotHtml}</td>
                             <td style="color: #eab308;">Pending Verification</td>
                             <td>
-                                <button class="btn-action btn-approve" onclick="approvePayment('${paymentDoc.id}', '${data.uid}', ${data.coins})">Approve</button>
-                                <button class="btn-action btn-reject" onclick="rejectPayment('${paymentDoc.id}')">Reject</button>
+                                <button class="btn-action btn-approve" onclick="window.approvePayment('${paymentDoc.id}', '${data.uid}', ${data.coins})">Approve</button>
+                                <button class="btn-action btn-reject" onclick="window.rejectPayment('${paymentDoc.id}')">Reject</button>
                             </td>
                         `;
                         paymentQueueBody.appendChild(row);
@@ -410,6 +533,73 @@
                 console.error("Error loading payments:", error);
                 paymentQueueBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444;">Error loading payment queue.</td></tr>`;
             }
+        }
+
+        window.approvePayment = async function(paymentId, uid, coinsToAdd) {
+            try {
+                await addUserCoins(uid, coinsToAdd);
+                await deleteDoc(doc(db, "payments", paymentId));
+                showModal("✅ Payment Approved", `🪙 ${coinsToAdd} Coins credited to user successfully!<br>Admin wallet updated.`, () => {
+                    loadPaymentRequests();
+                    updateAdminDisplayFromDB();
+                });
+            } catch (error) {
+                console.error("Error approving payment:", error);
+                showModal("Error", "Failed to approve payment: " + error.message);
+            }
+        }
+
+        window.rejectPayment = async function(paymentId) {
+            try {
+                await deleteDoc(doc(db, "payments", paymentId));
+                showModal("❌ Payment Rejected", "Payment request rejected and removed successfully.", () => {
+                    loadPaymentRequests();
+                });
+            } catch (error) {
+                console.error("Error rejecting payment:", error);
+                showModal("Error", "Failed to reject payment.");
+            }
+        }
+
+        closeAuthModalBtn.addEventListener('click', () => {
+            authOverlay.style.display = "none";
+        });
+
+        loginAdminBtn.addEventListener('click', async () => {
+            const enteredPassword = adminPasswordInput.value.trim();
+            if (enteredPassword === ADMIN_PASSWORD) {
+                authOverlay.style.display = "none";
+                adminMainContent.style.display = "block";
+                await updateAdminDisplayFromDB();
+                await loadPaymentRequests();
+                startWalletListener();
+                addTransactionLog('🔐 Admin logged in successfully', 'neutral');
+            } else {
+                authError.style.display = "block";
+            }
+        });
+
+        adminPasswordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginAdminBtn.click();
+            }
+        });
+
+        function startWalletListener() {
+            const walletRef = doc(db, "system", ADMIN_WALLET_ID);
+            onSnapshot(walletRef, (doc) => {
+                if (doc.exists()) {
+                    const balance = doc.data().totalCoins || 1000000;
+                    updateAdminDisplay(balance);
+                }
+            }, (error) => {
+                console.error("Wallet listener error:", error);
+            });
+        }
+
+        async function updateAdminDisplayFromDB() {
+            const balance = await getAdminWalletBalance();
+            updateAdminDisplay(balance);
         }
 
         creditFreeCoinsBtn.addEventListener('click', async () => {
@@ -441,61 +631,27 @@
                     targetUid = querySnap.docs[0].id;
                 }
 
-                const userRef = doc(db, "users", targetUid);
-                const userSnap = await getDoc(userRef);
-
-                let currentCoins = 0;
-                let userEmail = identifier;
-                if (userSnap.exists()) {
-                    currentCoins = userSnap.data().coins || 0;
-                    if (userSnap.data().email) userEmail = userSnap.data().email;
-                }
-
-                const updatedCoins = currentCoins + coinsToAdd;
-                await setDoc(userRef, { coins: updatedCoins, email: userEmail }, { merge: true });
-
-                showModal("🎉 Success!", `🪙 A ${coinsToAdd} Free Coins credited to user (${userEmail}).<br>New Balance: ${updatedCoins.toLocaleString()} Coins`);
+                const newBalance = await addUserCoins(targetUid, coinsToAdd);
+                showModal("🎉 Success!", `🪙 ${coinsToAdd} Free Coins credited to user (${identifier}).<br>New Balance: ${newBalance.toLocaleString()} Coins<br>Admin wallet updated.`);
                 freeUserIdentifier.value = "";
+                await updateAdminDisplayFromDB();
             } catch (error) {
                 console.error("Error crediting free coins:", error);
-                showModal("Error", "Failed to credit coins. Check console for details.");
+                showModal("Error", "Failed to credit coins: " + error.message);
             }
         });
 
-        window.approvePayment = async function(paymentId, uid, coinsToAdd) {
-            try {
-                const userRef = doc(db, "users", uid);
-                const userSnap = await getDoc(userRef);
-                
-                let currentCoins = 0;
-                if (userSnap.exists()) {
-                    currentCoins = userSnap.data().coins || 0;
-                }
+        refreshBtn.addEventListener('click', async () => {
+            await updateAdminDisplayFromDB();
+            await loadPaymentRequests();
+            showModal("🔄 Refreshed", "Dashboard data updated successfully!");
+        });
 
-                const updatedCoins = currentCoins + coinsToAdd;
-                await setDoc(userRef, { coins: updatedCoins }, { merge: true });
-                await deleteDoc(doc(db, "payments", paymentId));
+        setTimeout(async () => {
+            await updateAdminDisplayFromDB();
+        }, 1000);
 
-                showModal("✅ Payment Approved", `🪙 A ${coinsToAdd} Coins credited to user successfully!`, () => {
-                    loadPaymentRequests();
-                });
-            } catch (error) {
-                console.error("Error approving payment:", error);
-                showModal("Error", "Failed to approve payment. Check console.");
-            }
-        }
-
-        window.rejectPayment = async function(paymentId) {
-            try {
-                await deleteDoc(doc(db, "payments", paymentId));
-                showModal("❌ Payment Rejected", "Payment request rejected and removed successfully.", () => {
-                    loadPaymentRequests();
-                });
-            } catch (error) {
-                console.error("Error rejecting payment:", error);
-                showModal("Error", "Failed to reject payment.");
-            }
-        }
+        console.log("👑 Admin Dashboard ready with updated rates!");
     </script>
 </body>
 </html>
