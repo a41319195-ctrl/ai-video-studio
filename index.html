@@ -6,141 +6,208 @@
     <title>AI Video Studio - Next-Gen Creator Suite</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .music-library-section {
-            background: #0f172a;
+        /* Audio Library Styles */
+        .audio-library-section {
+            background: #1e293b;
             border: 1px solid #334155;
             padding: 16px;
-            border-radius: 8px;
+            border-radius: 12px;
             margin-top: 15px;
+            width: 100%;
         }
-        .music-library-section h3 {
-            color: #38bdf8;
-            font-size: 15px;
-            margin-bottom: 10px;
-        }
-        .music-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 8px;
-            max-height: 200px;
-            overflow-y: auto;
-            padding: 4px;
-        }
-        .music-grid::-webkit-scrollbar {
-            width: 4px;
-        }
-        .music-grid::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        .music-grid::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-        }
-        .music-item {
-            background: #1e293b;
-            padding: 8px 12px;
-            border-radius: 6px;
+        .audio-library-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 12px;
+        }
+        .audio-library-header h3 {
+            color: #38bdf8;
+            font-size: 15px;
+            margin: 0;
+        }
+        .audio-library-header .badge {
+            background: #3b82f6;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .audio-search-box {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            color: #f8fafc;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        .audio-search-box:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .audio-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        .audio-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+        .audio-grid::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 4px;
+        }
+        .audio-grid::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .audio-item {
+            background: #0f172a;
+            padding: 6px 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             border: 1px solid #334155;
             transition: 0.3s;
             cursor: pointer;
+            font-size: 11px;
         }
-        .music-item:hover {
+        .audio-item:hover {
             border-color: #38bdf8;
-            background: #2d3b4f;
+            background: #1a2a3a;
         }
-        .music-item .name {
-            font-size: 12px;
+        .audio-item.selected {
+            border-color: #22c55e;
+            background: #0a2a1a;
+        }
+        .audio-item input[type="checkbox"] {
+            accent-color: #22c55e;
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .audio-item .audio-name {
             color: #f8fafc;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 120px;
+            flex: 1;
         }
-        .music-item .play-btn {
+        .audio-item .audio-duration {
+            color: #94a3b8;
+            font-size: 9px;
+            flex-shrink: 0;
+        }
+        .audio-item .audio-play {
+            color: #38bdf8;
             background: transparent;
             border: none;
-            color: #38bdf8;
             cursor: pointer;
-            font-size: 16px;
-            padding: 2px 6px;
-        }
-        .music-item .play-btn:hover {
-            color: #22c55e;
-        }
-        .music-item.active {
-            border-color: #22c55e;
-            background: #1a3a2a;
-        }
-        .action-btn-success {
-            background: #22c55e;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: 0.3s;
-            text-align: center;
-        }
-        .action-btn-success:hover {
-            background: #16a34a;
-        }
-        .bg-music-label {
-            color: #38bdf8;
-            font-weight: bold;
-            font-size: 13px;
-            display: block;
-            margin-bottom: 6px;
-        }
-        .current-track-display {
-            color: #22c55e;
             font-size: 12px;
-            margin-top: 6px;
-            padding: 6px 10px;
-            background: #0f172a;
-            border-radius: 4px;
-            border: 1px dashed #334155;
+            padding: 0 2px;
         }
-        #applyMusicBtn {
+        .audio-item .audio-play:hover {
+            color: #22c55e;
+        }
+        .audio-actions {
+            display: flex;
+            gap: 8px;
             margin-top: 10px;
         }
-        .coin-cost-badge {
-            font-size: 11px;
-            color: #94a3b8;
-            background: #0f172a;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        .video-cost-display {
-            background: #0f172a;
-            padding: 10px 16px;
+        .audio-actions button {
+            flex: 1;
+            padding: 8px;
             border-radius: 6px;
-            border: 1px solid #334155;
-            margin-bottom: 16px;
-            font-size: 13px;
-            color: #94a3b8;
+            border: none;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.3s;
         }
-        .video-cost-display span {
-            color: #ffcc00;
+        .btn-apply-audio {
+            background: #22c55e;
+            color: white;
+        }
+        .btn-apply-audio:hover {
+            background: #16a34a;
+        }
+        .btn-clear-audio {
+            background: #475569;
+            color: white;
+        }
+        .btn-clear-audio:hover {
+            background: #334155;
+        }
+        .selected-count {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+        .selected-count span {
+            color: #22c55e;
             font-weight: bold;
         }
-        .music-cost-display {
+
+        /* Video Player Container */
+        #videoPlayerContainer {
+            width: 100%;
+            display: none;
+        }
+        #videoPlayerContainer video {
+            width: 100%;
+            max-height: 250px;
+            background: #000;
+            border-radius: 8px;
+        }
+
+        /* Download Button - Always Visible After Generation */
+        .download-btn-container {
+            margin-top: 10px;
+            display: none;
+        }
+        .download-btn-container.show {
+            display: flex;
+        }
+        .download-btn-container a {
+            flex: 1;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        /* TTS & Lip-Sync Indicator */
+        .tts-indicator {
             background: #0f172a;
             padding: 8px 12px;
             border-radius: 4px;
-            border: 1px dashed #334155;
+            border: 1px solid #334155;
             font-size: 12px;
             color: #94a3b8;
-            margin-top: 6px;
+            margin-top: 8px;
+            display: none;
         }
-        .music-cost-display span {
-            color: #ffcc00;
+        .tts-indicator.active {
+            display: block;
+        }
+        .tts-indicator .tts-status {
+            color: #22c55e;
             font-weight: bold;
+        }
+
+        @media (min-width: 600px) {
+            .audio-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        @media (min-width: 900px) {
+            .audio-grid {
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+            }
         }
     </style>
 </head>
@@ -149,9 +216,9 @@
         <!-- Top Navigation Bar -->
         <nav class="navbar">
             <button id="menuBtn" class="icon-btn">☰</button>
-            <div class="logo">AI Video Studio</div>
+            <div class="logo">🎬 AI Video Studio</div>
             <div id="authSection" style="display: flex; gap: 8px; align-items: center;">
-                <button id="googleLoginBtn" class="btn-primary" style="padding: 6px 12px; font-size: 14px;">🔑 Login with Google</button>
+                <button id="googleLoginBtn" class="btn-primary" style="padding: 6px 12px; font-size: 13px;">🔑 Login</button>
                 <div id="userProfile" style="display: none; align-items: center; gap: 8px;">
                     <span id="userName" style="font-size: 13px; font-weight: bold;"></span>
                     <button id="logoutBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 12px;">Logout</button>
@@ -159,26 +226,25 @@
             </div>
         </nav>
 
-        <!-- Sidebar Menu -->
+        <!-- Sidebar -->
         <div id="sidebar" class="sidebar">
             <div class="sidebar-header">
-                <h3>Menu</h3>
+                <h3>📋 Menu</h3>
                 <button id="closeMenu" class="icon-btn">✕</button>
             </div>
             <ul class="sidebar-links">
                 <li><a href="#" class="active">🏠 Studio</a></li>
-                <li><a href="admin.html">👑 Admin Account</a></li>
-                <li><a href="#" id="buyCoinsMenuLink">💳 Buy Coins ($10+ Pack)</a></li>
-                <li><a href="#">📁 My Generated Videos</a></li>
+                <li><a href="admin.html">👑 Admin Panel</a></li>
+                <li><a href="#" id="buyCoinsMenuLink">💳 Buy Coins</a></li>
+                <li><a href="#">📁 My Videos</a></li>
             </ul>
         </div>
 
         <!-- Header -->
         <header class="studio-header">
-            <h1>AI Video Studio</h1>
-            <p>Transform text, voice, and images into cinematic masterpieces.</p>
-            <!-- Coin Balance Display -->
-            <div id="coinBalanceBox" style="margin-top: 10px; font-weight: bold; color: #ffcc00; font-size: 16px;">
+            <h1>✨ AI Video Studio</h1>
+            <p>Text-to-Video • Voice • Music • Lip-Sync • Realistic Animation</p>
+            <div id="coinBalanceBox">
                 🪙 Coins: <span id="userCoins">0</span> 🪙
             </div>
         </header>
@@ -188,20 +254,18 @@
             <!-- Input Section -->
             <section class="input-section">
                 <div class="input-group">
-                    <label for="prompt">Describe your video or idea:</label>
-                    <textarea id="prompt" placeholder="e.g., A cute cat driving a futuristic car through neon streets..."></textarea>
+                    <label for="prompt">📝 Describe your video:</label>
+                    <textarea id="prompt" placeholder="e.g., A happy dog dancing in the rain with a rainbow background..."></textarea>
                 </div>
 
-                <!-- Media & Voice Controls -->
                 <div class="controls-row">
                     <div class="file-upload" style="flex: 1; display: flex;">
                         <label for="imageUpload" class="btn-secondary" style="width: 100%; cursor: pointer; text-align: center;">📁 Upload Image</label>
                         <input type="file" id="imageUpload" accept="image/*" hidden>
                     </div>
-                    <button id="micBtn" class="btn-secondary">🎙️ Voice Command</button>
+                    <button id="micBtn" class="btn-secondary">🎙️ Voice</button>
                 </div>
 
-                <!-- Options Row -->
                 <div class="options-row">
                     <div class="select-group">
                         <label for="resolution">Quality:</label>
@@ -212,77 +276,77 @@
                         </select>
                     </div>
                     <div class="select-group">
-                        <label for="videoDuration">Duration / Format:</label>
+                        <label for="videoDuration">Duration:</label>
                         <select id="videoDuration">
-                            <option value="30">Shorts / Reel (30 sec) - 20 Coins</option>
-                            <option value="120">Standard (1-2 min) - 50 Coins</option>
-                            <option value="300">Cinematic (5 min) - 100 Coins</option>
+                            <option value="30">30 sec - 20 Coins</option>
+                            <option value="120">1-2 min - 50 Coins</option>
+                            <option value="300">5 min - 100 Coins</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Video Cost Display -->
                 <div class="video-cost-display">
-                    ⚡ Video Generation Cost: <span id="videoCostDisplay">20</span> Coins 
-                    (Deducted from your balance, goes to Admin Wallet)
+                    ⚡ Video Cost: <span id="videoCostDisplay">20</span> Coins (goes to Admin Wallet)
                 </div>
 
-                <button id="generateBtn" class="btn-primary">✨ Generate Video</button>
+                <button id="generateBtn" class="btn-primary">🚀 Generate Video</button>
             </section>
 
-            <!-- Output Preview Section -->
+            <!-- Preview Section -->
             <section class="preview-section">
-                <div class="video-preview-box" id="previewBox" style="text-align: center; display: flex; flex-direction: column; gap: 12px;">
-                    <p id="previewText">Your generated video preview will appear here...</p>
+                <div class="video-preview-box" id="previewBox">
+                    <p id="previewText">🎬 Your video will appear here...</p>
                     
-                    <!-- Video Player Area - NO MUSIC LIST HERE -->
-                    <div id="videoPlayerContainer" style="display: none;">
-                        <div style="width: 100%; background: #000; border-radius: 8px; overflow: hidden; border: 1px solid #334155;">
-                            <video id="finalVideoPlayer" controls width="100%" style="display: block; max-height: 200px; background: #000;">
-                                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-                                Your browser does not support HTML video.
-                            </video>
+                    <!-- Video Player Container -->
+                    <div id="videoPlayerContainer">
+                        <video id="finalVideoPlayer" controls>
+                            <source src="" type="video/mp4">
+                            Your browser does not support HTML video.
+                        </video>
+                        <div class="download-btn-container" id="downloadBtnContainer">
+                            <a id="downloadVideoBtn" class="action-btn-success">📥 Download Video</a>
                         </div>
-                        <div style="margin-top: 10px; display: flex; gap: 10px; justify-content: center;">
-                            <a id="downloadVideoBtn" href="#" class="action-btn-success" style="flex: 1; text-align: center;">📥 Download Video</a>
-                        </div>
+                    </div>
+
+                    <!-- TTS & Lip-Sync Indicator -->
+                    <div class="tts-indicator" id="ttsIndicator">
+                        🎤 Text-to-Speech & Lip-Sync: <span class="tts-status">Active</span>
+                        <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">Realistic character movement synced with audio</div>
                     </div>
                 </div>
 
-                <!-- SEPARATE MUSIC LIBRARY SECTION -->
-                <div class="music-library-section" id="musicLibrarySection">
-                    <h3>🎵 Music Library <span style="font-size: 12px; color: #94a3b8; font-weight: normal;">(100+ Tracks)</span></h3>
+                <!-- AUDIO LIBRARY - 500+ Tracks -->
+                <div class="audio-library-section" id="audioLibrarySection">
+                    <div class="audio-library-header">
+                        <h3>🎵 Audio Library <span class="badge">500+ Tracks</span></h3>
+                        <span class="selected-count">Selected: <span id="selectedAudioCount">0</span></span>
+                    </div>
                     
-                    <!-- Current Selected Track Display -->
-                    <div id="currentTrackDisplay" class="current-track-display" style="display: none;">
-                        🎵 Currently Selected: <span id="selectedTrackName">None</span>
-                        <span class="coin-cost-badge" id="trackCoinCost">Cost: 0 Coins</span>
+                    <input type="text" class="audio-search-box" id="audioSearch" placeholder="🔍 Search audio tracks...">
+
+                    <div class="audio-grid" id="audioGrid">
+                        <!-- Populated by JavaScript -->
+                        <div style="text-align: center; color: #94a3b8; font-size: 13px; padding: 20px; grid-column: 1/-1;">Loading audio library...</div>
                     </div>
 
-                    <!-- Music Grid -->
-                    <div class="music-grid" id="musicGrid">
-                        <!-- Will be populated by JavaScript -->
-                        <div style="text-align: center; color: #94a3b8; font-size: 13px; padding: 20px;">Loading music library...</div>
+                    <div class="audio-cost-display" style="font-size: 12px; color: #94a3b8; margin-top: 8px;">
+                        💰 Cost per track: <span id="audioCostDisplay">2-8</span> Coins (separate deduction)
                     </div>
 
-                    <!-- Music Cost Display -->
-                    <div class="music-cost-display">
-                        🎵 Music Attachment Cost: <span id="musicCostDisplay">0</span> Coins 
-                        (Separate deduction from your balance, goes to Admin Wallet)
+                    <div class="audio-actions">
+                        <button class="btn-apply-audio" id="applyAudioBtn">🎵 Apply Selected (Multi-Select)</button>
+                        <button class="btn-clear-audio" id="clearAudioBtn">✕ Clear All</button>
                     </div>
-
-                    <!-- Apply Music Button -->
-                    <button id="applyMusicBtn" class="btn-primary" style="width: 100%; margin-top: 10px;">🎵 Apply Selected Music to Video (Separate Deduction)</button>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Firebase SDKs & Core Configuration Setup -->
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
@@ -299,7 +363,6 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // Expose everything to window for script.js access
         window.auth = auth;
         window.db = db;
         window.googleProvider = provider;
@@ -315,11 +378,12 @@
         window.setDoc = setDoc;
         window.updateDoc = updateDoc;
         window.increment = increment;
-        window.app = app;
-        window.authInstance = auth;
-        window.dbInstance = db;
+        window.collection = collection;
+        window.query = query;
+        window.where = where;
+        window.getDocs = getDocs;
 
-        console.log("🔥 Firebase Auth & DB Ready with Email/Password & Google Support!");
+        console.log("🔥 Firebase Ready!");
     </script>
 
     <script src="script.js"></script>
