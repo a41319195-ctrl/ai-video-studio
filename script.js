@@ -17,8 +17,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let currentUser = null;
     let currentCoins = 0;
-    let selectedTrackUrl = ""; 
+    let selectedTrackUrl = "";
     let backgroundAudioElement = null;
+    let videoPlayerElement = null;
 
     const backgroundTracks = [
         { id: 1, name: "Epic Cinematic Hans Zimmer Style", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", category: "Cinematic" },
@@ -26,6 +27,13 @@ document.addEventListener("DOMContentLoaded", () => {
         { id: 3, name: "Upbeat Electronic Corporate Pop", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", category: "Upbeat" },
         { id: 4, name: "Ambient Space Meditation Dream", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3", category: "Ambient" }
     ];
+
+    const trackMap = {
+        'cinematic': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        'lofi': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+        'upbeat': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+        'ambient': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
+    };
 
     const modalOverlay = document.createElement('div');
     modalOverlay.id = 'customModalOverlay';
@@ -190,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (userSnap.exists() && userSnap.data().coins !== undefined) {
                 currentCoins = userSnap.data().coins;
             } else {
-                currentCoins = 25; 
+                currentCoins = 25;
                 await window.setDoc(userRef, { coins: currentCoins, email: email }, { merge: true });
                 showCustomAlert("🎁 Welcome Bonus!", "You have received **🪙 25 Free Coins**!", true);
             }
@@ -199,6 +207,13 @@ document.addEventListener("DOMContentLoaded", () => {
             currentCoins = 25;
             updateCoinDisplay();
         }
+    }
+
+    function getCoinCost(durationSec) {
+        if (durationSec === 30) return 2;
+        if (durationSec === 120) return 4;
+        if (durationSec === 300) return 8;
+        return 2;
     }
 
     if (generateBtn) {
@@ -213,9 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const resolution = document.getElementById('resolution') ? document.getElementById('resolution').value : "720p";
             const durationSec = videoDurationSelect ? parseInt(videoDurationSelect.value) : 30;
             
-            let coinCost = 5; 
-            if (durationSec === 120) coinCost = 10; 
-            if (durationSec === 300) coinCost = 20; 
+            let coinCost = getCoinCost(durationSec);
 
             if (!promptValue) {
                 showCustomAlert("Prompt Missing", "Please enter a description or prompt for your video!");
@@ -239,20 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
 
             setTimeout(() => {
-                let musicOptionsHtml = `
-                    <div style="margin-top: 15px; text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155;">
-                        <label style="color: #38bdf8; font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">🎵 Select Background Music / Sound Effect:</label>
-                        <select id="bgMusicSelectDropdown" style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
-                            <option value="">-- No Background Music (Original Audio) --</option>`;
-                
-                backgroundTracks.forEach(track => {
-                    musicOptionsHtml += `<option value="${track.url}">${track.name} (${track.category})</option>`;
-                });
-
-                musicOptionsHtml += `</select>
-                        <button id="applyMusicBtn" style="background: #3b82f6; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%;">Apply & Play with Track</button>
-                    </div>`;
-
+                // Video Player only - NO music list below it
                 previewText.innerHTML = `
                     <div style="color: #22c55e; font-weight: 600; margin-bottom: 8px; font-size: 13px;">
                         ✅ Video Generated Successfully! <span style="color: #94a3b8; font-weight: normal;">(🪙 Remaining: ${currentCoins.toLocaleString()})</span>
@@ -265,43 +265,53 @@ document.addEventListener("DOMContentLoaded", () => {
                         </video>
                     </div>
 
-                    ${musicOptionsHtml}
-
                     <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
                         <a id="downloadVideoBtn" href="https://www.w3schools.com/html/mov_bbb.mp4" download="ai-generated-video.mp4" style="text-decoration: none; padding: 12px 20px; background: #22c55e; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; display: block; text-align: center; width: 100%;">📥 डाउनलोड वीडियो (Download Video)</a>
                     </div>
                 `;
 
-                const videoPlayer = document.getElementById('finalVideoPlayer');
+                videoPlayerElement = document.getElementById('finalVideoPlayer');
+
+                // Auto-play logic for music
+                const bgSelect = document.getElementById('bgMusicSelect');
                 const applyMusicBtn = document.getElementById('applyMusicBtn');
 
                 if (applyMusicBtn) {
                     applyMusicBtn.onclick = () => {
-                        const selectBox = document.getElementById('bgMusicSelectDropdown');
-                        selectedTrackUrl = selectBox.value;
+                        const selectedValue = bgSelect.value;
+                        const trackUrl = trackMap[selectedValue] || '';
 
                         if (backgroundAudioElement) {
                             backgroundAudioElement.pause();
                             backgroundAudioElement = null;
                         }
 
-                        if (selectedTrackUrl) {
-                            backgroundAudioElement = new Audio(selectedTrackUrl);
+                        if (trackUrl && videoPlayerElement) {
+                            backgroundAudioElement = new Audio(trackUrl);
                             backgroundAudioElement.loop = true;
                             
-                            videoPlayer.onplay = () => backgroundAudioElement.play().catch(e => {});
-                            videoPlayer.onpause = () => backgroundAudioElement.pause();
-                            videoPlayer.onseeking = () => { backgroundAudioElement.currentTime = videoPlayer.currentTime; };
+                            videoPlayerElement.onplay = () => {
+                                backgroundAudioElement.play().catch(e => {});
+                            };
+                            videoPlayerElement.onpause = () => {
+                                backgroundAudioElement.pause();
+                            };
+                            videoPlayerElement.onseeking = () => {
+                                backgroundAudioElement.currentTime = videoPlayerElement.currentTime;
+                            };
 
                             backgroundAudioElement.play().then(() => {
-                                videoPlayer.play();
+                                videoPlayerElement.play();
                                 showCustomAlert("🎵 Music Playing!", "Selected background track is playing in sync with your video!", true);
                             }).catch(err => {
                                 showCustomAlert("Notice", "Click play on the video player to start audio.");
                             });
                         } else {
-                            if (backgroundAudioElement) backgroundAudioElement.pause();
-                            showCustomAlert("Notice", "Audio track removed.");
+                            if (backgroundAudioElement) {
+                                backgroundAudioElement.pause();
+                                backgroundAudioElement = null;
+                            }
+                            showCustomAlert("Notice", "Audio track removed. No music selected.");
                         }
                     };
                 }
@@ -406,6 +416,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     timestamp: new Date().toISOString()
                 });
                 showCustomAlert("⏳ Success!", "Payment proof submitted! Admin will verify and credit your coins.", true);
+                modalOverlay.style.display = 'none';
             };
         };
     }
