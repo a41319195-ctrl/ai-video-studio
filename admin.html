@@ -26,6 +26,7 @@
             border: 1px solid #334155;
             text-align: center;
             width: 320px;
+            position: relative;
         }
         .auth-box h2 {
             margin-bottom: 16px;
@@ -164,9 +165,15 @@
 </head>
 <body>
 
-    <!-- Security Login Password Popup Overlay -->
+    <!-- Security Login Password Popup Overlay with Close (×) Button -->
     <div id="authOverlay">
-        <div class="auth-box" style="position: relative;">
+        <div class="auth-box">
+            <!-- Close / Cut Button for Admin Login Box -->
+            <button id="closeAuthModalBtn" style="
+                position: absolute; top: 10px; right: 12px; background: transparent;
+                border: none; color: #94a3b8; font-size: 22px; cursor: pointer; font-weight: bold;
+            ">&times;</button>
+
             <h2>🔐 Admin Access</h2>
             <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password...">
             <button class="btn-primary" id="loginAdminBtn" style="width: 100%;">Login Dashboard</button>
@@ -226,7 +233,7 @@
                         <label>Coins to Credit:</label>
                         <input type="number" id="freeCoinsAmount" placeholder="e.g., 500" value="500">
                     </div>
-                    <button class="btn-primary" id="creditFreeCoinsBtn" style="height: 41px;">➕ Credit Coins</button>
+                    <button class="btn-primary" id="creditFreeCoinsBtn" style="height: 41px;">➕ Credit 🪙 A Coins</button>
                 </div>
             </div>
 
@@ -239,13 +246,14 @@
                             <th>User Email</th>
                             <th>Amount Paid</th>
                             <th>Coins to Credit</th>
+                            <th>Screenshot Proof</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="paymentQueueBody">
                         <tr>
-                            <td colspan="5" style="text-align: center; color: #94a3b8;">Loading pending payments from database...</td>
+                            <td colspan="6" style="text-align: center; color: #94a3b8;">Loading pending payments from database...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -272,6 +280,7 @@
         const db = getFirestore(app);
 
         const authOverlay = document.getElementById('authOverlay');
+        const closeAuthModalBtn = document.getElementById('closeAuthModalBtn');
         const adminMainContent = document.getElementById('adminMainContent');
         const adminPasswordInput = document.getElementById('adminPasswordInput');
         const loginAdminBtn = document.getElementById('loginAdminBtn');
@@ -288,6 +297,11 @@
         const freeUserIdentifier = document.getElementById('freeUserIdentifier');
         const freeCoinsAmount = document.getElementById('freeCoinsAmount');
         const creditFreeCoinsBtn = document.getElementById('creditFreeCoinsBtn');
+
+        // Close Admin Password Overlay when (×) is clicked
+        closeAuthModalBtn.addEventListener('click', () => {
+            authOverlay.style.display = "none";
+        });
 
         function showModal(title, message, callback) {
             modalTitle.textContent = title;
@@ -339,10 +353,17 @@
                     if (data.status === "pending") {
                         count++;
                         const row = document.createElement('tr');
+                        
+                        let screenshotHtml = `<span style="color: #94a3b8; font-size: 12px;">No Image</span>`;
+                        if (data.screenshot) {
+                            screenshotHtml = `<a href="${data.screenshot}" target="_blank" style="color: #38bdf8; text-decoration: underline; font-weight: bold; font-size: 12px;">🖼️ View Receipt</a>`;
+                        }
+
                         row.innerHTML = `
-                            <td>${data.email}</td>
-                            <td>$${data.amount}</td>
-                            <td>🪙 ${data.coins} Coins</td>
+                            <td>${data.email || 'N/A'}</td>
+                            <td>$${data.amount || 0} USDT</td>
+                            <td>🪙 A ${data.coins || 0} Coins</td>
+                            <td>${screenshotHtml}</td>
                             <td style="color: #eab308;">Pending Verification</td>
                             <td>
                                 <button class="btn-action btn-approve" onclick="approvePayment('${paymentDoc.id}', '${data.uid}', ${data.coins})">Approve</button>
@@ -354,13 +375,13 @@
                 });
 
                 if (count === 0) {
-                    paymentQueueBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8;">No pending payment requests found.</td></tr>`;
+                    paymentQueueBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8;">No pending payment requests found.</td></tr>`;
                 }
                 pendingCountDisplay.textContent = `${count} Requests`;
 
             } catch (error) {
                 console.error("Error loading payments:", error);
-                paymentQueueBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444;">Error loading payment queue.</td></tr>`;
+                paymentQueueBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444;">Error loading payment queue.</td></tr>`;
             }
         }
 
@@ -407,7 +428,7 @@
                 const updatedCoins = currentCoins + coinsToAdd;
                 await setDoc(userRef, { coins: updatedCoins, email: userEmail }, { merge: true });
 
-                showModal("🎉 Success!", `🪙 ${coinsToAdd} Free Coins credited to user (${userEmail}).<br>New Balance: ${updatedCoins.toLocaleString()} Coins`);
+                showModal("🎉 Success!", `🪙 A ${coinsToAdd} Free Coins credited to user (${userEmail}).<br>New Balance: ${updatedCoins.toLocaleString()} Coins`);
                 freeUserIdentifier.value = "";
             } catch (error) {
                 console.error("Error crediting free coins:", error);
@@ -430,7 +451,7 @@
                 await setDoc(userRef, { coins: updatedCoins }, { merge: true });
                 await deleteDoc(doc(db, "payments", paymentId));
 
-                showModal("✅ Payment Approved", `🪙 ${coinsToAdd} Coins credited to user successfully!`, () => {
+                showModal("✅ Payment Approved", `🪙 A ${coinsToAdd} Coins credited to user successfully!`, () => {
                     loadPaymentRequests();
                 });
             } catch (error) {
@@ -440,7 +461,7 @@
         }
 
         // Reject Payment (Attached to window for global inline onclick support)
-        window.rejectPayment = async function(paymentId, uid) {
+        window.rejectPayment = async function(paymentId) {
             try {
                 await deleteDoc(doc(db, "payments", paymentId));
                 showModal("❌ Payment Rejected", "Payment request rejected and removed successfully.", () => {
