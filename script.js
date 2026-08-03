@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let currentUser = null;
     let currentCoins = 0;
-    let selectedTrackUrl = ""; // यूजर द्वारा सेलेक्ट किया गया गाना
+    let selectedTrackUrl = ""; 
 
     // --- 100 Background Music & Sound Effects Library Array ---
     const backgroundTracks = [
@@ -31,10 +31,9 @@ document.addEventListener("DOMContentLoaded", () => {
         { id: 8, name: "Action Beat Drop", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3", category: "Action" },
         { id: 9, name: "Acoustic Guitar Sunshine", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3", category: "Vlog" },
         { id: 10, name: "Space Odyssey Synth", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3", category: "Futuristic" }
-        // ऐसे ही तू इसमें 100 तक गाने और जोड़ सकता है!
     ];
 
-    // --- Create Custom Modern Modal Container with Close (×) Button ---
+    // --- Create Custom Modern Modal Container ---
     const modalOverlay = document.createElement('div');
     modalOverlay.id = 'customModalOverlay';
     modalOverlay.style.cssText = `
@@ -49,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
             text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;
             max-height: 90vh; overflow-y: auto;
         ">
-            <!-- Close / Cut Button -->
             <button id="modalCloseBtn" style="
                 position: absolute; top: 12px; right: 12px; background: transparent;
                 border: none; color: #94a3b8; font-size: 20px; cursor: pointer; font-weight: bold;
@@ -89,7 +87,6 @@ document.addEventListener("DOMContentLoaded", () => {
         closeMenu.addEventListener('click', () => sidebar.classList.remove('active'));
     }
 
-    // Handle Buy Coins Click from Sidebar Menu
     if (buyCoinsMenuLink) {
         buyCoinsMenuLink.addEventListener('click', (e) => {
             e.preventDefault();
@@ -98,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Firebase Auth State Listener & Real-time Coin Sync (Fixed Registration/Login Bug)
+    // Firebase Auth State Listener & Real-time Coin Sync
     setTimeout(async () => {
         if (window.auth && window.getRedirectResult) {
             try {
@@ -122,36 +119,35 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (googleLoginBtn) googleLoginBtn.style.display = "block";
                     if (userProfile) userProfile.style.display = "none";
                     currentCoins = 0;
-                    if (userCoinsSpan) userCoinsSpan.textContent = "0";
+                    updateCoinDisplay();
                 }
             });
         }
     }, 1000);
 
-    // Google Login Trigger with Fallback
+    // Google Login Trigger with Fallback to Email Modal
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
             try {
                 await window.signInWithPopup(window.auth, window.googleProvider);
             } catch (popupError) {
-                console.warn("Popup failed, trying redirect...", popupError);
+                console.warn("Popup failed, trying redirect or email auth...", popupError);
                 try {
                     await window.signInWithRedirect(window.auth, window.googleProvider);
                 } catch (redirectError) {
-                    console.error("Google Login Failed completely:", redirectError);
                     openEmailAuthModal();
                 }
             }
         });
     }
 
-    // Email & Password Auth Modal (Fixed Registration Bug for New Users)
+    // Email & Password Auth Modal (Guaranteed 25 Coins for New Registrations)
     function openEmailAuthModal() {
         document.getElementById('modalTitle').textContent = "🔐 Login / Register";
         document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
             <div style="font-size: 13px; margin-bottom: 15px;">
-                <p style="color: #f8fafc; margin-bottom: 10px; font-size: 12px;">Enter your email & password. If account doesn't exist, it will automatically register you!</p>
+                <p style="color: #f8fafc; margin-bottom: 10px; font-size: 12px;">Enter email & password. New accounts get 🪙 **25 Free Coins** instantly!</p>
                 <label style="display:block; margin-bottom:4px; color:#f8fafc; font-weight:600;">Email Address:</label>
                 <input type="email" id="authEmail" placeholder="name@example.com" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 12px; box-sizing: border-box;">
                 
@@ -180,25 +176,28 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             try {
+                let userCred;
                 try {
-                    await window.signInWithEmailAndPassword(window.auth, email, password);
+                    userCred = await window.signInWithEmailAndPassword(window.auth, email, password);
                 } catch (loginErr) {
                     if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/wrong-password') {
-                        await window.createUserWithEmailAndPassword(window.auth, email, password);
+                        userCred = await window.createUserWithEmailAndPassword(window.auth, email, password);
+                        // Grant 25 Free Coins immediately upon registration
+                        const userRef = window.doc(window.db, "users", userCred.user.uid);
+                        await window.setDoc(userRef, { coins: 25, email: email }, { merge: true });
                     } else {
                         throw loginErr;
                     }
                 }
                 modalOverlay.style.display = 'none';
-                showCustomAlert("Success", "Logged in / Registered successfully!", true);
+                showCustomAlert("Success", "Logged in / Registered successfully with 🪙 25 Free Coins!", true);
             } catch (err) {
-                console.error("Email Auth Error:", err);
+                console.error("Auth Error:", err);
                 alert("Authentication Failed: " + err.message);
             }
         };
     }
 
-    // Logout Trigger
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             await window.signOut(window.auth);
@@ -206,26 +205,28 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Sync User Data from Firestore (Fixed: Sets 25 Coins for New Users)
+    // Robust Sync User Data with Firestore
     async function syncUserData(uid, email) {
         try {
             const userRef = window.doc(window.db, "users", uid);
             const userSnap = await window.getDoc(userRef);
 
-            if (userSnap.exists()) {
-                currentCoins = userSnap.data().coins || 0;
+            if (userSnap.exists() && userSnap.data().coins !== undefined) {
+                currentCoins = userSnap.data().coins;
             } else {
-                currentCoins = 25; // 25 Free Coins for New User
-                await window.setDoc(userRef, { coins: currentCoins, email: email });
-                showCustomAlert("🎁 Welcome Bonus!", "You have received **25 Free Coins**! You can create up to **5 free 30-second videos**.", true);
+                currentCoins = 25; // 25 Free Coins Guarantee for New / Uninitialized Users
+                await window.setDoc(userRef, { coins: currentCoins, email: email }, { merge: true });
+                showCustomAlert("🎁 Welcome Bonus!", "You have received **🪙 25 Free Coins**! You can create up to **5 free 30-second videos**.", true);
             }
             updateCoinDisplay();
         } catch (error) {
             console.error("Error syncing user data:", error);
+            currentCoins = 25;
+            updateCoinDisplay();
         }
     }
 
-    // Generate Button & Music Selection & Download Setup
+    // Video Generation Logic
     if (generateBtn) {
         generateBtn.addEventListener('click', async () => {
             if (!currentUser) {
@@ -248,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (currentCoins < coinCost) {
-                showCustomAlert("❌ Insufficient Coins", `You need ${coinCost} coins, but you have ${currentCoins}. Please recharge your balance to continue.`);
+                showCustomAlert("❌ Insufficient Coins", `You need 🪙 ${coinCost} coins, but you have 🪙 ${currentCoins}. Please recharge your balance to continue.`);
                 openRechargeModal();
                 return;
             }
@@ -267,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 let musicOptionsHtml = `<div style="margin-top: 15px; text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155;">
                     <strong style="color: #38bdf8; font-size: 13px;">🎵 Select Background Music / Sound Effect (100+ Library):</strong>
                     <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">Choose a track to automatically attach and merge with your video:</p>
-                    <select id="bgMusicSelect" style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
+                    <select id="bgMusicSelectDropdown" style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
                         <option value="">-- No Music (Silent Video) --</option>`;
                 
                 backgroundTracks.forEach(track => {
@@ -281,7 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 previewText.innerHTML = `
                     <div style="color: #22c55e; font-weight: 600; margin-bottom: 8px;">
                         ✅ Video Generated Successfully!<br>
-                        <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">Deducted: ${coinCost} Coins | Remaining: ${currentCoins.toLocaleString()} Coins</span>
+                        <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">Deducted: 🪙 ${coinCost} Coins | Remaining: 🪙 ${currentCoins.toLocaleString()} Coins</span>
                     </div>
                     <video id="finalVideoPlayer" controls width="100%" style="border-radius: 8px; margin-top: 6px; max-height: 200px;">
                         <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
@@ -298,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const applyMusicBtn = document.getElementById('applyMusicBtn');
                 if (applyMusicBtn) {
                     applyMusicBtn.onclick = () => {
-                        const selectBox = document.getElementById('bgMusicSelect');
+                        const selectBox = document.getElementById('bgMusicSelectDropdown');
                         selectedTrackUrl = selectBox.value;
                         if (selectedTrackUrl) {
                             showCustomAlert("🎵 Music Applied!", "Background track has been successfully merged with your video!", true);
@@ -312,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Step 1: Open Package Selection Modal
+    // Recharge Modal & Crypto Packages
     function openRechargeModal() {
         if (!currentUser) {
             showCustomAlert("Login Required", "Please login first to buy coin packages!");
@@ -326,11 +327,11 @@ document.addEventListener("DOMContentLoaded", () => {
             <div style="font-size: 13px; margin-bottom: 15px;">
                 <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Choose a Package:</label>
                 <select id="packageSelect" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 12px;">
-                    <option value="1|10|140">$10 -> 140 Coins</option>
-                    <option value="2|20|300" selected>$20 -> 300 Coins (20 Bonus 🔥)</option>
-                    <option value="3|40|630">$40 -> 630 Coins (70 Bonus 🔥🔥)</option>
-                    <option value="4|60|1000">$60 -> 1,000 Coins (160 Bonus 🔥🔥🔥)</option>
-                    <option value="5|120|2150">$120 -> 2,150 Coins (470 Massive Bonus 👑)</option>
+                    <option value="1|10|140">$10 -> 🪙 140 Coins</option>
+                    <option value="2|20|300" selected>$20 -> 🪙 300 Coins (20 Bonus 🔥)</option>
+                    <option value="3|40|630">$40 -> 🪙 630 Coins (70 Bonus 🔥🔥)</option>
+                    <option value="4|60|1000">$60 -> 🪙 1,000 Coins (160 Bonus 🔥🔥🔥)</option>
+                    <option value="5|120|2150">$120 -> 🪙 2,150 Coins (470 Massive Bonus 👑)</option>
                 </select>
                 <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Your Registered Email:</label>
                 <input type="email" id="rechargeEmailInput" value="${currentUser.email || ''}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box;">
@@ -362,7 +363,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Step 2: Crypto USDT (BEP20 Only) Payment & Screenshot Upload Screen (Connected to Admin Queue)
     function openCryptoUploadModal(paidAmount, addedCoins, userEmail) {
         const cryptoWalletAddress = "0x836d59168b7e9d29aabca5ab67cce52a63e2bda2";
         const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${cryptoWalletAddress}`;
@@ -372,7 +372,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modalBody').innerHTML = `
             <div style="font-size: 13px; margin-bottom: 12px; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed #38bdf8; text-align: left;">
                 <strong style="color: #38bdf8;">Step 1: Send USDT via BEP20 Network</strong><br>
-                Plan Amount: <strong style="color: #22c55e; font-size: 16px;">$${paidAmount} USDT</strong> (For <b>${addedCoins} Coins</b>)<br>
+                Plan Amount: <strong style="color: #22c55e; font-size: 16px;">$${paidAmount} USDT</strong> (For <b>🪙 ${addedCoins} Coins</b>)<br>
                 <span style="color: #fACC15; font-size: 11px; font-weight: bold;">⚠️ Note: Only send USDT using BSC (BEP20) Network!</span><br><br>
 
                 <div style="text-align: center; margin-bottom: 10px;">
@@ -499,7 +499,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Image Upload Handler
     if (imageUpload) {
         imageUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
