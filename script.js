@@ -22,20 +22,48 @@ document.addEventListener("DOMContentLoaded", () => {
     const videoPlayerContainer = document.getElementById("videoPlayerContainer");
     const finalVideoPlayer = document.getElementById("finalVideoPlayer");
     const downloadVideoBtn = document.getElementById("downloadVideoBtn");
+    const videoCostDisplay = document.getElementById("videoCostDisplay");
+    const musicCostDisplay = document.getElementById("musicCostDisplay");
 
     let currentUser = null;
     let currentCoins = 0;
     let selectedTrackUrl = "";
     let selectedTrackNameText = "";
     let selectedTrackCost = 0;
+    let selectedTrackDuration = 0;
     let backgroundAudioElement = null;
     let videoPlayerElement = null;
     let isVideoGenerated = false;
     let generatedVideoUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+    let authStateResolved = false;
 
     // ADMIN SYSTEM WALLET - This is the central transaction manager
     const ADMIN_WALLET_ID = "admin_wallet";
     const ADMIN_PASSWORD = "Hak0786@";
+
+    // ============ UPDATED COIN RATES ============
+    // Video Generation Costs (Separate)
+    const VIDEO_COSTS = {
+        30: 20,   // 30 seconds - 20 coins
+        120: 50,  // 1-2 minutes - 50 coins
+        300: 100  // 5 minutes - 100 coins
+    };
+
+    // Music Attachment Costs (Separate) - Based on duration
+    function getMusicCost(durationSeconds) {
+        if (durationSeconds <= 30) return 2;
+        if (durationSeconds <= 120) return 4;
+        if (durationSeconds <= 300) return 8;
+        return 8;
+    }
+
+    // Package Rates (Updated)
+    const PACKAGES = [
+        { id: 1, usd: 10, coins: 85 },
+        { id: 2, usd: 20, coins: 190 },
+        { id: 3, usd: 40, coins: 400 },
+        { id: 4, usd: 60, coins: 675 }
+    ];
 
     // 100+ Music Tracks Database
     const musicTracks = [
@@ -60,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
         { id: 18, name: "Laung Laachi - Punjabi", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-18.mp3", category: "Hindi", duration: 170 },
         { id: 19, name: "Param Sundari - Mimi", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-19.mp3", category: "Hindi", duration: 155 },
         { id: 20, name: "Bade Miyan Chote Miyan", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-20.mp3", category: "Hindi", duration: 165 },
-
         // English Trending Tracks
         { id: 21, name: "Shape of You - Ed Sheeran", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", category: "English", duration: 195 },
         { id: 22, name: "Blinding Lights - Weeknd", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", category: "English", duration: 185 },
@@ -82,7 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
         { id: 38, name: "Peaches - Justin Bieber", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-18.mp3", category: "English", duration: 185 },
         { id: 39, name: "Montero - Lil Nas X", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-19.mp3", category: "English", duration: 185 },
         { id: 40, name: "Stay - Kid LAROI", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-20.mp3", category: "English", duration: 170 },
-
         // Mix / International / Trending
         { id: 41, name: "Despacito - Luis Fonsi", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", category: "Mix", duration: 220 },
         { id: 42, name: "Ai Se Eu Te Pego", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", category: "Mix", duration: 180 },
@@ -172,9 +198,42 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.body.appendChild(modalOverlay);
 
+    // ============ FIXED LOGIN SESSION FUNCTIONS ============
+
+    // Wait for Firebase Auth to be ready
+    function waitForAuth() {
+        return new Promise((resolve) => {
+            if (window.auth && window.onAuthStateChanged) {
+                resolve();
+            } else {
+                const checkInterval = setInterval(() => {
+                    if (window.auth && window.onAuthStateChanged) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+            }
+        });
+    }
+
+    // Ensure user session is properly restored
+    async function ensureUserSession() {
+        try {
+            await waitForAuth();
+            return new Promise((resolve) => {
+                const unsubscribe = window.onAuthStateChanged(window.auth, (user) => {
+                    unsubscribe();
+                    resolve(user);
+                });
+            });
+        } catch (error) {
+            console.error("Error ensuring user session:", error);
+            return null;
+        }
+    }
+
     // ============ ADMIN WALLET FUNCTIONS ============
     
-    // Initialize Admin Wallet if not exists
     async function initializeAdminWallet() {
         try {
             const walletRef = window.doc(window.db, "system", ADMIN_WALLET_ID);
@@ -195,7 +254,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Get Admin Wallet Balance
     async function getAdminWalletBalance() {
         try {
             const walletRef = window.doc(window.db, "system", ADMIN_WALLET_ID);
@@ -210,7 +268,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Deduct from Admin Wallet (When giving coins to users)
     async function deductFromAdminWallet(amount) {
         try {
             const walletRef = window.doc(window.db, "system", ADMIN_WALLET_ID);
@@ -235,7 +292,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Add to Admin Wallet (When users spend coins)
     async function addToAdminWallet(amount) {
         try {
             const walletRef = window.doc(window.db, "system", ADMIN_WALLET_ID);
@@ -258,7 +314,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ============ USER COIN FUNCTIONS ============
 
-    // Get user coins
     async function getUserCoins(uid) {
         try {
             const userRef = window.doc(window.db, "users", uid);
@@ -273,31 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Set user coins with admin wallet deduction
-    async function setUserCoins(uid, newBalance, deductFromAdmin = false) {
-        try {
-            const userRef = window.doc(window.db, "users", uid);
-            
-            // If deducting from admin wallet
-            if (deductFromAdmin) {
-                const userSnap = await window.getDoc(userRef);
-                const currentUserCoins = userSnap.exists() ? userSnap.data().coins || 0 : 0;
-                const coinsToAdd = newBalance - currentUserCoins;
-                
-                if (coinsToAdd > 0) {
-                    await deductFromAdminWallet(coinsToAdd);
-                }
-            }
-            
-            await window.setDoc(userRef, { coins: newBalance }, { merge: true });
-            return newBalance;
-        } catch (error) {
-            console.error("Error setting user coins:", error);
-            throw error;
-        }
-    }
-
-    // Add coins to user with admin wallet deduction
+    // ADD coins to user - DEDUCTS from admin wallet
     async function addUserCoins(uid, amount) {
         try {
             const userRef = window.doc(window.db, "users", uid);
@@ -317,8 +348,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Spend user coins (adds back to admin wallet)
-    async function spendUserCoins(uid, amount) {
+    // SPEND user coins - ADDS back to admin wallet
+    async function spendUserCoins(uid, amount, reason = "spent") {
         try {
             const userRef = window.doc(window.db, "users", uid);
             const userSnap = await window.getDoc(userRef);
@@ -370,6 +401,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Update video cost display
+    function updateVideoCostDisplay() {
+        if (videoDurationSelect && videoCostDisplay) {
+            const duration = parseInt(videoDurationSelect.value);
+            const cost = VIDEO_COSTS[duration] || 20;
+            videoCostDisplay.textContent = cost;
+        }
+    }
+
+    // Update music cost display
+    function updateMusicCostDisplay() {
+        if (selectedTrackDuration > 0 && musicCostDisplay) {
+            const cost = getMusicCost(selectedTrackDuration);
+            musicCostDisplay.textContent = cost;
+        } else if (musicCostDisplay) {
+            musicCostDisplay.textContent = "0";
+        }
+    }
+
     // ============ MUSIC LIBRARY ============
 
     function renderMusicLibrary() {
@@ -377,16 +427,6 @@ document.addEventListener("DOMContentLoaded", () => {
         
         musicGrid.innerHTML = '';
         
-        // Group by category
-        const categories = {};
-        musicTracks.forEach(track => {
-            if (!categories[track.category]) {
-                categories[track.category] = [];
-            }
-            categories[track.category].push(track);
-        });
-
-        // Render tracks
         musicTracks.forEach(track => {
             const item = document.createElement('div');
             item.className = 'music-item';
@@ -396,54 +436,51 @@ document.addEventListener("DOMContentLoaded", () => {
             const durationSeconds = track.duration % 60;
             const durationStr = durationMinutes > 0 ? `${durationMinutes}m ${durationSeconds}s` : `${durationSeconds}s`;
             
-            // Calculate coin cost based on duration
-            let cost = 2;
-            if (track.duration <= 30) cost = 2;
-            else if (track.duration <= 120) cost = 4;
-            else if (track.duration <= 300) cost = 8;
-            else cost = 8;
+            // Calculate music cost based on duration (separate from video)
+            const cost = getMusicCost(track.duration);
             
             item.innerHTML = `
                 <span class="name">${track.name}</span>
                 <span style="font-size: 10px; color: #94a3b8;">${durationStr}</span>
                 <span style="font-size: 9px; color: #ffcc00; background: #0f172a; padding: 1px 6px; border-radius: 8px;">🪙${cost}</span>
-                <button class="play-btn" data-url="${track.url}" data-name="${track.name}" data-cost="${cost}" data-id="${track.id}">▶</button>
+                <button class="play-btn" data-url="${track.url}" data-name="${track.name}" data-cost="${cost}" data-duration="${track.duration}" data-id="${track.id}">▶</button>
             `;
             
             musicGrid.appendChild(item);
         });
 
-        // Add event listeners to play buttons
         document.querySelectorAll('.music-item .play-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const url = this.dataset.url;
                 const name = this.dataset.name;
                 const cost = parseInt(this.dataset.cost);
+                const duration = parseInt(this.dataset.duration);
                 const id = parseInt(this.dataset.id);
                 
-                // Remove active class from all items
                 document.querySelectorAll('.music-item').forEach(el => el.classList.remove('active'));
                 this.closest('.music-item').classList.add('active');
                 
-                selectTrack(url, name, cost, id);
+                selectTrack(url, name, cost, duration, id);
             });
         });
     }
 
-    function selectTrack(url, name, cost, id) {
+    function selectTrack(url, name, cost, duration, id) {
         selectedTrackUrl = url;
         selectedTrackNameText = name;
         selectedTrackCost = cost;
+        selectedTrackDuration = duration;
         
-        // Update display
         if (currentTrackDisplay) {
             currentTrackDisplay.style.display = 'block';
             selectedTrackName.textContent = name;
-            trackCoinCost.textContent = `Cost: ${cost} Coins`;
+            trackCoinCost.textContent = `Cost: ${cost} Coins (Separate Deduction)`;
         }
         
-        // Preview the track
+        // Update music cost display
+        updateMusicCostDisplay();
+        
         if (backgroundAudioElement) {
             backgroundAudioElement.pause();
             backgroundAudioElement = null;
@@ -451,11 +488,11 @@ document.addEventListener("DOMContentLoaded", () => {
         
         backgroundAudioElement = new Audio(url);
         backgroundAudioElement.loop = true;
-        backgroundAudioElement.play().catch(e => {
-            // Auto-play blocked, user can click apply
-        });
+        backgroundAudioElement.play().catch(e => {});
         
-        showCustomAlert("🎵 Track Selected", `"${name}" selected!<br>Cost: 🪙 ${cost} coins to attach to video.<br>Click "Apply Music" to attach to your video.`, true);
+        showCustomAlert("🎵 Track Selected", 
+            `"${name}" selected!<br>Music Cost: 🪙 ${cost} coins (separate deduction)<br>Click "Apply Music" to attach to your video.`, 
+            true);
     }
 
     // ============ APPLY MUSIC TO VIDEO ============
@@ -478,14 +515,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             
-            if (currentCoins < selectedTrackCost) {
-                showCustomAlert("❌ Insufficient Coins", `You need 🪙 ${selectedTrackCost} coins to attach this music, but you have 🪙 ${currentCoins}.`);
+            // Music cost is separate from video cost
+            const musicCost = selectedTrackCost;
+            
+            if (currentCoins < musicCost) {
+                showCustomAlert("❌ Insufficient Coins", 
+                    `You need 🪙 ${musicCost} coins for music attachment, but you have 🪙 ${currentCoins}.<br>Music cost is separate from video generation cost.`);
                 return;
             }
             
             try {
-                // Spend coins for music attachment
-                currentCoins = await spendUserCoins(currentUser.uid, selectedTrackCost);
+                // Spend coins for music attachment (separate deduction)
+                currentCoins = await spendUserCoins(currentUser.uid, musicCost);
                 updateCoinDisplay();
                 
                 // Attach music to video
@@ -510,7 +551,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     backgroundAudioElement.play().then(() => {
                         videoPlayerElement.play();
-                        showCustomAlert("🎵 Music Attached!", `"${selectedTrackNameText}" is now playing with your video!<br>🪙 ${selectedTrackCost} coins spent.`, true);
+                        showCustomAlert("🎵 Music Attached!", 
+                            `"${selectedTrackNameText}" is now playing with your video!<br>🪙 ${musicCost} coins spent (separate deduction).<br>Added to admin wallet.`, 
+                            true);
                     }).catch(err => {
                         showCustomAlert("Notice", "Click play on the video player to start audio.");
                     });
@@ -522,7 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ============ AUTHENTICATION ============
+    // ============ AUTHENTICATION WITH FIXED SESSION ============
 
     if (menuBtn && sidebar && closeMenu) {
         menuBtn.addEventListener('click', () => sidebar.classList.add('active'));
@@ -537,41 +580,73 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    setTimeout(async () => {
-        // Initialize admin wallet
-        await initializeAdminWallet();
+    // FIXED: Proper auth state handling with session persistence
+    async function setupAuthListener() {
+        await waitForAuth();
         
-        if (window.auth && window.getRedirectResult) {
-            try { await window.getRedirectResult(window.auth); } catch (e) {}
+        // Check for redirect result first
+        if (window.getRedirectResult) {
+            try {
+                const result = await window.getRedirectResult(window.auth);
+                if (result && result.user) {
+                    console.log("✅ Redirect login successful");
+                }
+            } catch (e) {
+                console.error("Redirect result error:", e);
+            }
         }
 
-        if (window.onAuthStateChanged && window.auth) {
-            window.onAuthStateChanged(window.auth, async (user) => {
-                if (user) {
-                    currentUser = user;
-                    if (googleLoginBtn) googleLoginBtn.style.display = "none";
-                    if (userProfile) userProfile.style.display = "flex";
-                    if (userName) userName.textContent = user.displayName || user.email;
-                    await syncUserData(user.uid, user.email);
-                } else {
-                    currentUser = null;
-                    if (googleLoginBtn) googleLoginBtn.style.display = "block";
-                    if (userProfile) userProfile.style.display = "none";
-                    currentCoins = 0;
-                    updateCoinDisplay();
-                }
-            });
-        }
-    }, 1000);
+        // Main auth state listener
+        window.onAuthStateChanged(window.auth, async (user) => {
+            console.log("Auth state changed:", user ? `User: ${user.email}` : "No user");
+            
+            if (user) {
+                currentUser = user;
+                if (googleLoginBtn) googleLoginBtn.style.display = "none";
+                if (userProfile) userProfile.style.display = "flex";
+                if (userName) userName.textContent = user.displayName || user.email;
+                
+                // Ensure user data is synced and session is established
+                await syncUserData(user.uid, user.email);
+                authStateResolved = true;
+                
+                // Update UI to show logged in state
+                console.log("✅ User session established:", user.email);
+            } else {
+                currentUser = null;
+                if (googleLoginBtn) googleLoginBtn.style.display = "block";
+                if (userProfile) userProfile.style.display = "none";
+                currentCoins = 0;
+                updateCoinDisplay();
+                authStateResolved = true;
+                console.log("❌ No user session");
+            }
+        });
+    }
+
+    // Call setup on load
+    setTimeout(() => {
+        setupAuthListener();
+        initializeAdminWallet();
+    }, 500);
 
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
             try {
-                await window.signInWithPopup(window.auth, window.googleProvider);
+                const result = await window.signInWithPopup(window.auth, window.googleProvider);
+                if (result.user) {
+                    console.log("✅ Google login successful:", result.user.email);
+                    // Force sync immediately
+                    await syncUserData(result.user.uid, result.user.email);
+                }
             } catch (e) {
-                try {
-                    await window.signInWithRedirect(window.auth, window.googleProvider);
-                } catch (err) {
+                if (e.code === 'auth/popup-blocked') {
+                    try {
+                        await window.signInWithRedirect(window.auth, window.googleProvider);
+                    } catch (err) {
+                        openEmailAuthModal();
+                    }
+                } else {
                     openEmailAuthModal();
                 }
             }
@@ -613,23 +688,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 let userCred;
+                let isNewUser = false;
                 try {
                     userCred = await window.signInWithEmailAndPassword(window.auth, email, password);
                 } catch (loginErr) {
+                    // Create new user
                     userCred = await window.createUserWithEmailAndPassword(window.auth, email, password);
-                    const userRef = window.doc(window.db, "users", userCred.user.uid);
-                    
+                    isNewUser = true;
                     // Give 25 free coins - DEDUCT from admin wallet
                     await addUserCoins(userCred.user.uid, 25);
-                    
+                    const userRef = window.doc(window.db, "users", userCred.user.uid);
                     await window.setDoc(userRef, { 
                         coins: 25, 
                         email: email,
                         createdAt: new Date().toISOString()
                     }, { merge: true });
                 }
+                
                 modalOverlay.style.display = 'none';
-                showCustomAlert("Success", "Logged in / Registered successfully with 🪙 25 Free Coins!", true);
+                
+                // FIXED: Properly sync user data after login
+                await syncUserData(userCred.user.uid, email);
+                
+                // Update UI immediately
+                currentUser = userCred.user;
+                if (googleLoginBtn) googleLoginBtn.style.display = "none";
+                if (userProfile) userProfile.style.display = "flex";
+                if (userName) userName.textContent = userCred.user.displayName || email;
+                
+                showCustomAlert("✅ Success!", 
+                    isNewUser ? 
+                    "Logged in successfully with 🪙 25 Free Coins!<br>Your session is now active." : 
+                    "Welcome back! Your session is now active.", 
+                    true);
+                
             } catch (err) {
                 alert("Authentication Failed: " + err.message);
             }
@@ -639,6 +731,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             await window.signOut(window.auth);
+            // Clear local state
+            currentUser = null;
+            currentCoins = 0;
+            updateCoinDisplay();
+            if (googleLoginBtn) googleLoginBtn.style.display = "block";
+            if (userProfile) userProfile.style.display = "none";
             showCustomAlert("Logged Out", "You have been successfully logged out.", true);
         });
     }
@@ -659,23 +757,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     email: email,
                     createdAt: new Date().toISOString()
                 }, { merge: true });
-                showCustomAlert("🎁 Welcome Bonus!", "You have received **🪙 25 Free Coins**!<br>These come from the admin reserve wallet.", true);
+                showCustomAlert("🎁 Welcome Bonus!", 
+                    "You have received **🪙 25 Free Coins**!<br>These come from the admin reserve wallet.", 
+                    true);
             }
             updateCoinDisplay();
+            console.log("✅ User synced:", email, "Coins:", currentCoins);
         } catch (error) {
+            console.error("Error syncing user:", error);
             currentCoins = 25;
             updateCoinDisplay();
         }
     }
 
-    function getCoinCost(durationSec) {
-        if (durationSec === 30) return 2;
-        if (durationSec === 120) return 4;
-        if (durationSec === 300) return 8;
-        return 2;
-    }
-
-    // ============ VIDEO GENERATION ============
+    // ============ VIDEO GENERATION WITH NEW RATES ============
 
     if (generateBtn) {
         generateBtn.addEventListener('click', async () => {
@@ -689,7 +784,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const resolution = document.getElementById('resolution') ? document.getElementById('resolution').value : "720p";
             const durationSec = videoDurationSelect ? parseInt(videoDurationSelect.value) : 30;
             
-            let coinCost = getCoinCost(durationSec);
+            // Get video cost from new rates
+            let coinCost = VIDEO_COSTS[durationSec] || 20;
 
             if (!promptValue) {
                 showCustomAlert("Prompt Missing", "Please enter a description or prompt for your video!");
@@ -697,29 +793,28 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (currentCoins < coinCost) {
-                showCustomAlert("❌ Insufficient Coins", `You need 🪙 ${coinCost} coins, but you have 🪙 ${currentCoins}. Please recharge to continue.`);
+                showCustomAlert("❌ Insufficient Coins", 
+                    `You need 🪙 ${coinCost} coins for video generation, but you have 🪙 ${currentCoins}.<br>Video cost is separate from music cost.`);
                 openRechargeModal();
                 return;
             }
 
             try {
-                // Spend coins for video generation - adds back to admin wallet
+                // Spend coins for video generation - ADDS back to admin wallet
                 currentCoins = await spendUserCoins(currentUser.uid, coinCost);
                 updateCoinDisplay();
 
                 previewText.innerHTML = `
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 30px 0;">
                         <div style="width: 35px; height: 35px; border: 3px solid #3b82f6; border-top: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                        <p style="color: #f8fafc; font-weight: 500;">Spent 🪙 ${coinCost} Coins.<br>Generating your cinematic ${resolution} video (${durationSec}s)...</p>
+                        <p style="color: #f8fafc; font-weight: 500;">Spent 🪙 ${coinCost} Coins (Video Generation).<br>Generating your cinematic ${resolution} video (${durationSec}s)...</p>
                     </div>
                 `;
 
                 setTimeout(() => {
-                    // Show video player (NO music list inside)
                     videoPlayerContainer.style.display = 'block';
                     isVideoGenerated = true;
                     
-                    // Set video source
                     if (finalVideoPlayer) {
                         finalVideoPlayer.src = generatedVideoUrl;
                         finalVideoPlayer.load();
@@ -734,12 +829,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div style="color: #22c55e; font-weight: 600; margin-bottom: 8px; font-size: 13px;">
                             ✅ Video Generated Successfully! <span style="color: #94a3b8; font-weight: normal;">(🪙 Remaining: ${currentCoins.toLocaleString()})</span>
                         </div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+                            💡 Music can be added separately from the Music Library below.
+                        </div>
                     `;
                     
-                    // Restore video player container (it was hidden, now show)
                     videoPlayerContainer.style.display = 'block';
-                    
-                    // Set video player reference
                     videoPlayerElement = finalVideoPlayer;
 
                 }, 3500);
@@ -750,7 +845,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ============ RECHARGE / PAYMENT SYSTEM ============
+    // ============ RECHARGE / PAYMENT SYSTEM WITH UPDATED PACKAGES ============
 
     function openRechargeModal() {
         if (!currentUser) {
@@ -763,15 +858,19 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
             <div style="font-size: 13px; margin-bottom: 15px;">
+                <p style="color: #94a3b8; font-size: 12px; margin-bottom: 12px;">💡 Coins value: $0.10 - $0.12 per coin</p>
                 <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Choose a Package:</label>
                 <select id="packageSelect" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 12px;">
-                    <option value="1|10|140">$10 -> 🪙 140 Coins</option>
-                    <option value="2|20|300" selected>$20 -> 🪙 300 Coins (20 Bonus 🔥)</option>
-                    <option value="3|40|630">$40 -> 🪙 630 Coins (70 Bonus 🔥🔥)</option>
-                    <option value="4|60|1000">$60 -> 🪙 1,000 Coins (160 Bonus 🔥🔥🔥)</option>
+                    <option value="1|10|85">$10 -> 🪙 85 Coins</option>
+                    <option value="2|20|190" selected>$20 -> 🪙 190 Coins</option>
+                    <option value="3|40|400">$40 -> 🪙 400 Coins</option>
+                    <option value="4|60|675">$60 -> 🪙 675 Coins</option>
                 </select>
                 <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Your Registered Email:</label>
                 <input type="email" id="rechargeEmailInput" value="${currentUser.email || ''}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box;">
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 8px; text-align: left;">
+                    ⚡ After admin approval, coins will be credited from admin reserve.
+                </div>
             </div>
         `;
         document.getElementById('modalActionContainer').innerHTML = `
@@ -850,7 +949,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     status: "pending",
                     timestamp: new Date().toISOString()
                 });
-                showCustomAlert("⏳ Success!", "Payment proof submitted! Admin will verify and credit your coins.<br>🪙 ${addedCoins} coins will be added from admin reserve.", true);
+                showCustomAlert("⏳ Success!", 
+                    "Payment proof submitted! Admin will verify and credit your coins.<br>🪙 ${addedCoins} coins will be added from admin reserve.", 
+                    true);
                 modalOverlay.style.display = 'none';
             };
         };
@@ -887,8 +988,16 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // ============ DURATION CHANGE HANDLER ============
+
+    if (videoDurationSelect) {
+        videoDurationSelect.addEventListener('change', updateVideoCostDisplay);
+    }
+
     // ============ INITIALIZE MUSIC LIBRARY ============
     renderMusicLibrary();
+    updateVideoCostDisplay();
+    updateMusicCostDisplay();
 
     // ============ ADMIN WALLET STATUS CHECK ============
     async function checkAdminWallet() {
@@ -897,8 +1006,24 @@ document.addEventListener("DOMContentLoaded", () => {
         return balance;
     }
     
-    // Check admin wallet on load
     setTimeout(checkAdminWallet, 2000);
+
+    // ============ FIXED: SESSION PERSISTENCE CHECK ============
+    // Periodically check if user is still logged in
+    setInterval(async () => {
+        if (window.auth && window.auth.currentUser) {
+            const user = window.auth.currentUser;
+            if (user && !currentUser) {
+                // Session restored
+                currentUser = user;
+                await syncUserData(user.uid, user.email);
+                if (googleLoginBtn) googleLoginBtn.style.display = "none";
+                if (userProfile) userProfile.style.display = "flex";
+                if (userName) userName.textContent = user.displayName || user.email;
+                console.log("🔄 Session restored:", user.email);
+            }
+        }
+    }, 5000);
 });
 
 // Spin animation style
