@@ -6,25 +6,73 @@
     <title>AI Video Studio - Next-Gen Creator Suite</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .music-studio-box {
+        .music-library-section {
             background: #0f172a;
             border: 1px solid #334155;
-            padding: 14px;
+            padding: 16px;
             border-radius: 8px;
             margin-top: 15px;
-            text-align: left;
         }
-        .music-studio-box select {
-            width: 100%;
-            padding: 10px;
-            background: #1e293b;
-            border: 1px solid #475569;
-            color: #f8fafc;
-            border-radius: 6px;
-            margin-top: 8px;
+        .music-library-section h3 {
+            color: #38bdf8;
+            font-size: 15px;
             margin-bottom: 10px;
-            font-size: 13px;
-            outline: none;
+        }
+        .music-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        .music-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+        .music-grid::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .music-grid::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .music-item {
+            background: #1e293b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #334155;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        .music-item:hover {
+            border-color: #38bdf8;
+            background: #2d3b4f;
+        }
+        .music-item .name {
+            font-size: 12px;
+            color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 120px;
+        }
+        .music-item .play-btn {
+            background: transparent;
+            border: none;
+            color: #38bdf8;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+        }
+        .music-item .play-btn:hover {
+            color: #22c55e;
+        }
+        .music-item.active {
+            border-color: #22c55e;
+            background: #1a3a2a;
         }
         .action-btn-success {
             background: #22c55e;
@@ -48,6 +96,51 @@
             font-size: 13px;
             display: block;
             margin-bottom: 6px;
+        }
+        .current-track-display {
+            color: #22c55e;
+            font-size: 12px;
+            margin-top: 6px;
+            padding: 6px 10px;
+            background: #0f172a;
+            border-radius: 4px;
+            border: 1px dashed #334155;
+        }
+        #applyMusicBtn {
+            margin-top: 10px;
+        }
+        .coin-cost-badge {
+            font-size: 11px;
+            color: #94a3b8;
+            background: #0f172a;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .video-cost-display {
+            background: #0f172a;
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        .video-cost-display span {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        .music-cost-display {
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px dashed #334155;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
+        .music-cost-display span {
+            color: #ffcc00;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -83,10 +176,10 @@
         <!-- Header -->
         <header class="studio-header">
             <h1>AI Video Studio</h1>
-            <p>Transform text, voice, and images into cinematic masterpieces. (Cost varies by duration)</p>
+            <p>Transform text, voice, and images into cinematic masterpieces.</p>
             <!-- Coin Balance Display -->
             <div id="coinBalanceBox" style="margin-top: 10px; font-weight: bold; color: #ffcc00; font-size: 16px;">
-                🪙 Coins: <span id="userCoins">0</span> 🪙 A
+                🪙 Coins: <span id="userCoins">0</span> 🪙
             </div>
         </header>
 
@@ -121,11 +214,17 @@
                     <div class="select-group">
                         <label for="videoDuration">Duration / Format:</label>
                         <select id="videoDuration">
-                            <option value="30">Shorts / Reel (30 sec) - 2 Coins</option>
-                            <option value="120">Standard (1-2 min) - 4 Coins</option>
-                            <option value="300">Cinematic (5 min) - 8 Coins</option>
+                            <option value="30">Shorts / Reel (30 sec) - 20 Coins</option>
+                            <option value="120">Standard (1-2 min) - 50 Coins</option>
+                            <option value="300">Cinematic (5 min) - 100 Coins</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- Video Cost Display -->
+                <div class="video-cost-display">
+                    ⚡ Video Generation Cost: <span id="videoCostDisplay">20</span> Coins 
+                    (Deducted from your balance, goes to Admin Wallet)
                 </div>
 
                 <button id="generateBtn" class="btn-primary">✨ Generate Video</button>
@@ -136,23 +235,44 @@
                 <div class="video-preview-box" id="previewBox" style="text-align: center; display: flex; flex-direction: column; gap: 12px;">
                     <p id="previewText">Your generated video preview will appear here...</p>
                     
-                    <!-- Music Selection Section - Separate from Video Player -->
-                    <div class="music-studio-box">
-                        <label class="bg-music-label">🎵 Select Background Music / Track:</label>
-                        <select id="bgMusicSelect">
-                            <option value="none">-- No Background Music --</option>
-                            <option value="cinematic">Epic Cinematic Hans Zimmer Style</option>
-                            <option value="lofi">Chill Lofi Beats & Study Vibes</option>
-                            <option value="upbeat">Upbeat Electronic Corporate Pop</option>
-                            <option value="ambient">Ambient Space Meditation Dream</option>
-                        </select>
-                        <button id="applyMusicBtn" class="btn-primary" style="width: 100%; margin-top: 6px;">🎵 Apply Music to Video</button>
+                    <!-- Video Player Area - NO MUSIC LIST HERE -->
+                    <div id="videoPlayerContainer" style="display: none;">
+                        <div style="width: 100%; background: #000; border-radius: 8px; overflow: hidden; border: 1px solid #334155;">
+                            <video id="finalVideoPlayer" controls width="100%" style="display: block; max-height: 200px; background: #000;">
+                                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                                Your browser does not support HTML video.
+                            </video>
+                        </div>
+                        <div style="margin-top: 10px; display: flex; gap: 10px; justify-content: center;">
+                            <a id="downloadVideoBtn" href="#" class="action-btn-success" style="flex: 1; text-align: center;">📥 Download Video</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEPARATE MUSIC LIBRARY SECTION -->
+                <div class="music-library-section" id="musicLibrarySection">
+                    <h3>🎵 Music Library <span style="font-size: 12px; color: #94a3b8; font-weight: normal;">(100+ Tracks)</span></h3>
+                    
+                    <!-- Current Selected Track Display -->
+                    <div id="currentTrackDisplay" class="current-track-display" style="display: none;">
+                        🎵 Currently Selected: <span id="selectedTrackName">None</span>
+                        <span class="coin-cost-badge" id="trackCoinCost">Cost: 0 Coins</span>
                     </div>
 
-                    <!-- Download Button -->
-                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                        <a id="downloadVideoBtn" href="#" class="action-btn-success" style="flex: 1; text-align: center;">📥 Download Video</a>
+                    <!-- Music Grid -->
+                    <div class="music-grid" id="musicGrid">
+                        <!-- Will be populated by JavaScript -->
+                        <div style="text-align: center; color: #94a3b8; font-size: 13px; padding: 20px;">Loading music library...</div>
                     </div>
+
+                    <!-- Music Cost Display -->
+                    <div class="music-cost-display">
+                        🎵 Music Attachment Cost: <span id="musicCostDisplay">0</span> Coins 
+                        (Separate deduction from your balance, goes to Admin Wallet)
+                    </div>
+
+                    <!-- Apply Music Button -->
+                    <button id="applyMusicBtn" class="btn-primary" style="width: 100%; margin-top: 10px;">🎵 Apply Selected Music to Video (Separate Deduction)</button>
                 </div>
             </section>
         </main>
@@ -162,7 +282,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
@@ -179,6 +299,7 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
+        // Expose everything to window for script.js access
         window.auth = auth;
         window.db = db;
         window.googleProvider = provider;
@@ -192,6 +313,11 @@
         window.doc = doc;
         window.getDoc = getDoc;
         window.setDoc = setDoc;
+        window.updateDoc = updateDoc;
+        window.increment = increment;
+        window.app = app;
+        window.authInstance = auth;
+        window.dbInstance = db;
 
         console.log("🔥 Firebase Auth & DB Ready with Email/Password & Google Support!");
     </script>
