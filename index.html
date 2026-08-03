@@ -5,6 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Video Studio - Next-Gen Creator Suite</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* जावास्क्रिप्ट के नए फीचर्स और मोडल के लिए एडिशनल रेस्पॉन्सिव स्टाइल्स */
+        .music-studio-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 14px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: left;
+        }
+        .music-studio-box select {
+            width: 100%;
+            padding: 10px;
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            border-radius: 6px;
+            margin-top: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            outline: none;
+        }
+        .action-btn-success {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: 0.3s;
+        }
+        .action-btn-success:hover {
+            background: #16a34a;
+        }
+    </style>
 </head>
 <body>
     <div class="studio-container">
@@ -91,7 +129,7 @@
             <section class="preview-section">
                 <div class="video-preview-box" id="previewBox" style="text-align: center;">
                     <p id="previewText">Your generated video will appear here...</p>
-                    <!-- Download button will appear dynamically here after video generation -->
+                    <!-- Download button & Song Selector will appear dynamically here after video generation -->
                 </div>
             </section>
         </main>
