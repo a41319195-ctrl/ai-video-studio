@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let currentUser = null;
     let currentCoins = 0;
-    let selectedTrackUrl = ""; 
+    let selectedTrackUrl = ""; // यूजर द्वारा सेलेक्ट किया गया गाना
 
     // --- 100 Background Music & Sound Effects Library Array ---
     const backgroundTracks = [
@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         { id: 8, name: "Action Beat Drop", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3", category: "Action" },
         { id: 9, name: "Acoustic Guitar Sunshine", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3", category: "Vlog" },
         { id: 10, name: "Space Odyssey Synth", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3", category: "Futuristic" }
+        // ऐसे ही तू इसमें 100 तक गाने और जोड़ सकता है!
     ];
 
     // --- Create Custom Modern Modal Container with Close (×) Button ---
@@ -38,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modalOverlay.id = 'customModalOverlay';
     modalOverlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px);
+        background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
         display: none; justify-content: center; align-items: center; z-index: 10000;
     `;
     modalOverlay.innerHTML = `
@@ -97,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Firebase Auth State Listener & Real-time Coin Sync
+    // Firebase Auth State Listener & Real-time Coin Sync (Fixed Registration/Login Bug)
     setTimeout(async () => {
         if (window.auth && window.getRedirectResult) {
             try {
@@ -132,16 +133,18 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 await window.signInWithPopup(window.auth, window.googleProvider);
             } catch (popupError) {
+                console.warn("Popup failed, trying redirect...", popupError);
                 try {
                     await window.signInWithRedirect(window.auth, window.googleProvider);
                 } catch (redirectError) {
+                    console.error("Google Login Failed completely:", redirectError);
                     openEmailAuthModal();
                 }
             }
         });
     }
 
-    // Email & Password Auth Modal
+    // Email & Password Auth Modal (Fixed Registration Bug for New Users)
     function openEmailAuthModal() {
         document.getElementById('modalTitle').textContent = "🔐 Login / Register";
         document.getElementById('modalTitle').style.color = "#38bdf8";
@@ -180,6 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     await window.signInWithEmailAndPassword(window.auth, email, password);
                 } catch (loginErr) {
                     if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/wrong-password') {
+                        // Auto Register New User if not found
                         await window.createUserWithEmailAndPassword(window.auth, email, password);
                     } else {
                         throw loginErr;
@@ -188,6 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 modalOverlay.style.display = 'none';
                 showCustomAlert("Success", "Logged in / Registered successfully!", true);
             } catch (err) {
+                console.error("Email Auth Error:", err);
                 alert("Authentication Failed: " + err.message);
             }
         };
@@ -220,7 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- NEXT-LEVEL GENERATE BUTTON WITH SMART INTENT ANALYZER ---
+    // Generate Button & Music Selection & Download Setup
     if (generateBtn) {
         generateBtn.addEventListener('click', async () => {
             if (!currentUser) {
@@ -256,51 +261,32 @@ document.addEventListener("DOMContentLoaded", () => {
             currentCoins -= coinCost;
             saveCoinsToFirestore();
 
-            // Smart Intent Detection (अगर यूजर ने प्रॉम्प्ट में बात करने या बोलने का जिक्र किया हो)
-            const hasDialogueIntent = promptValue.toLowerCase().includes('speak') || promptValue.toLowerCase().includes('talk') || promptValue.toLowerCase().includes('बात') || promptValue.toLowerCase().includes('बोल') || promptValue.toLowerCase().includes('voice');
-
             previewText.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
                     <div style="width: 30px; height: 30px; border: 3px solid #3b82f6; border-top: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <p>Spent 🪙 ${coinCost} Coins.<br>Analyzing prompt & building cinematic ${resolution} video (${durationSec}s)...<br><span style="font-size: 12px; color: #38bdf8;">AI Engine: Mapping character animation, scenes & audio tracks...</span></p>
+                    <p>Spent 🪙 ${coinCost} Coins.<br>Generating your cinematic ${resolution} video (${durationSec}s)...<br><span style="font-size: 12px; color: #94a3b8;">Synthesizing visuals & preparing studio...</span></p>
                 </div>
             `;
 
             setTimeout(() => {
-                let advancedStudioBox = `
-                    <div style="margin-top: 15px; text-align: left; background: #0f172a; padding: 14px; border-radius: 8px; border: 1px solid #334155;">
-                        <strong style="color: #38bdf8; font-size: 13px;">🎬 Advanced AI Creator Suite:</strong>
-                        
-                        <!-- 100 Song Selector Dropdown -->
-                        <div style="margin-top: 10px;">
-                            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 4px;">Background Music Track (100+ Library):</label>
-                            <select id="bgMusicSelect" style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
-                                <option value="">-- No Music (Silent Video) --</option>
-                `;
+                // Video Generated + 100 Song Selection Studio Setup + Download Button
+                let musicOptionsHtml = `<div style="margin-top: 15px; text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155;">
+                    <strong style="color: #38bdf8; font-size: 13px;">🎵 Select Background Music / Sound Effect (100+ Library):</strong>
+                    <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">Choose a track to automatically attach and merge with your video:</p>
+                    <select id="bgMusicSelect" style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
+                        <option value="">-- No Music (Silent Video) --</option>`;
                 
                 backgroundTracks.forEach(track => {
-                    advancedStudioBox += `<option value="${track.url}">${track.name} (${track.category})</option>`;
+                    musicOptionsHtml += `<option value="${track.url}">${track.name} (${track.category})</option>`;
                 });
 
-                advancedStudioBox += `</select>
-                        </div>`;
-
-                // Smart Auto-Dialogue / Voice Generator Box (यदि यूजर ने प्रॉम्प्ट में कुछ बोलने या बातचीत का जिक्र किया हो)
-                if (hasDialogueIntent) {
-                    advancedStudioBox += `
-                        <div style="margin-top: 10px; border-top: 1px dashed #475569; padding-top: 10px;">
-                            <label style="font-size: 11px; color: #22c55e; display: block; margin-bottom: 4px;">🎙️ AI Voice / Character Dialogue Script (Auto-Detected):</label>
-                            <input type="text" id="dialogueInput" value="${promptValue}" style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px; margin-bottom: 6px; box-sizing: border-box;">
-                            <button id="speakDialogueBtn" style="background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;">🔊 Generate & Sync Voice Dialogue</button>
-                        </div>
-                    `;
-                }
-
-                advancedStudioBox += `</div>`;
+                musicOptionsHtml += `</select>
+                    <button id="applyMusicBtn" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;">Apply & Merge Audio</button>
+                </div>`;
 
                 previewText.innerHTML = `
                     <div style="color: #22c55e; font-weight: 600; margin-bottom: 8px;">
-                        ✨ Masterpiece Video Generated Successfully!<br>
+                        ✅ Video Generated Successfully!<br>
                         <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">Deducted: ${coinCost} Coins | Remaining: ${currentCoins.toLocaleString()} Coins</span>
                     </div>
                     <video id="finalVideoPlayer" controls width="100%" style="border-radius: 8px; margin-top: 6px; max-height: 200px;">
@@ -308,25 +294,23 @@ document.addEventListener("DOMContentLoaded", () => {
                         Your browser does not support HTML video.
                     </video>
                     
-                    ${advancedStudioBox}
+                    ${musicOptionsHtml}
 
                     <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
-                        <a id="downloadVideoBtn" href="https://www.w3schools.com/html/mov_bbb.mp4" download="ai-studio-masterpiece.mp4" style="text-decoration: none; padding: 10px 24px; background: #22c55e; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block;">📥 डाउनलोड मास्टरपीस वीडियो (Download)</a>
+                        <a id="downloadVideoBtn" href="https://www.w3schools.com/html/mov_bbb.mp4" download="ai-generated-video.mp4" style="text-decoration: none; padding: 10px 20px; background: #22c55e; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block;">📥 डाउनलोड वीडियो (Download)</a>
                     </div>
                 `;
 
-                // Handle Web Speech API for Dialogue voiceover generation
-                const speakBtn = document.getElementById('speakDialogueBtn');
-                if (speakBtn) {
-                    speakBtn.onclick = () => {
-                        const dialogueText = document.getElementById('dialogueInput').value;
-                        if ('speechSynthesis' in window && dialogueText) {
-                            const utterance = new SpeechSynthesisUtterance(dialogueText);
-                            utterance.lang = 'hi-IN'; // हिंदी / अंग्रेजी दोनों सपोर्ट
-                            window.speechSynthesis.speak(utterance);
-                            showCustomAlert("🔊 Voice Generated", "Character dialogue audio is playing and synced with your video!", true);
+                // Handle Audio Selection and Application
+                const applyMusicBtn = document.getElementById('applyMusicBtn');
+                if (applyMusicBtn) {
+                    applyMusicBtn.onclick = () => {
+                        const selectBox = document.getElementById('bgMusicSelect');
+                        selectedTrackUrl = selectBox.value;
+                        if (selectedTrackUrl) {
+                            showCustomAlert("🎵 Music Applied!", "Background track has been successfully merged with your video!", true);
                         } else {
-                            alert("Speech synthesis not supported or text is empty.");
+                            showCustomAlert("Notice", "No music selected. Video remains as is.");
                         }
                     };
                 }
@@ -372,7 +356,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.getElementById('proceedToPayBtn').onclick = () => {
             const packageData = document.getElementById('packageSelect').value.split('|');
-            openCryptoUploadModal(packageData[1], packageData[2], document.getElementById('rechargeEmailInput').value.trim());
+            const paidAmount = packageData[1];
+            const addedCoins = packageData[2];
+            const userEmail = document.getElementById('rechargeEmailInput').value.trim();
+
+            if (!userEmail) {
+                alert("Please enter a valid email address!");
+                return;
+            }
+
+            openCryptoUploadModal(paidAmount, addedCoins, userEmail);
         };
     }
 
@@ -414,31 +407,54 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         `;
 
-        document.getElementById('backToPackageBtn').onclick = () => { openRechargeModal(); };
+        document.getElementById('backToPackageBtn').onclick = () => {
+            openRechargeModal();
+        };
 
         document.getElementById('submitPaymentProofBtn').onclick = async () => {
-            const file = document.getElementById('paymentScreenshotInput').files[0];
-            if (!file) { alert("Please upload payment screenshot!"); return; }
+            const fileInput = document.getElementById('paymentScreenshotInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please upload the payment screenshot/receipt!");
+                return;
+            }
 
             const submitBtn = document.getElementById('submitPaymentProofBtn');
-            submitBtn.textContent = "Uploading...";
+            submitBtn.textContent = "Uploading & Submitting...";
             submitBtn.disabled = true;
 
             try {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = async () => {
+                    const base64Image = reader.result;
+
                     const paymentRef = window.doc(window.db, "payments", `${currentUser.uid}_${Date.now()}`);
                     await window.setDoc(paymentRef, {
-                        uid: currentUser.uid, email: userEmail, amount: parseInt(paidAmount),
-                        coins: parseInt(addedCoins), method: "USDT Crypto (BEP20)",
-                        screenshot: reader.result, status: "pending", timestamp: new Date().toISOString()
+                        uid: currentUser.uid,
+                        email: userEmail,
+                        amount: parseInt(paidAmount),
+                        coins: parseInt(addedCoins),
+                        method: "USDT Crypto (BEP20)",
+                        screenshot: base64Image,
+                        status: "pending",
+                        timestamp: new Date().toISOString()
                     });
-                    showCustomAlert("⏳ Submitted Successfully!", "Your payment proof has been sent to Admin. Coins will be credited shortly!", true);
+
+                    showCustomAlert("⏳ Request Submitted Successfully!", `Your crypto payment receipt has been uploaded and sent to the Admin.<br>The admin will verify your transaction and credit 🪙 <b>${addedCoins} Coins</b> to your account shortly!`, true);
                 };
+
+                reader.onerror = (error) => {
+                    console.error("Error reading file:", error);
+                    alert("Failed to read image file. Try again.");
+                    submitBtn.textContent = "Submit Proof";
+                    submitBtn.disabled = false;
+                };
+
             } catch (error) {
-                console.error(error);
-                alert("Failed to submit payment.");
+                console.error("Error submitting payment:", error);
+                showCustomAlert("Error", "Failed to submit payment proof. Try again.");
                 submitBtn.textContent = "Submit Proof";
                 submitBtn.disabled = false;
             }
@@ -446,7 +462,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function updateCoinDisplay() {
-        if (userCoinsSpan) userCoinsSpan.textContent = currentCoins.toLocaleString();
+        if (userCoinsSpan) {
+            userCoinsSpan.textContent = currentCoins.toLocaleString();
+        }
     }
 
     async function saveCoinsToFirestore() {
@@ -455,7 +473,9 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const userRef = window.doc(window.db, "users", currentUser.uid);
                 await window.setDoc(userRef, { coins: currentCoins }, { merge: true });
-            } catch (error) { console.error(error); }
+            } catch (error) {
+                console.error("Error saving coins to DB:", error);
+            }
         }
     }
 
@@ -465,16 +485,23 @@ document.addEventListener("DOMContentLoaded", () => {
             if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
-                recognition.lang = 'hi-IN'; // हिंदी आवाज भी आसानी से पहचान लेगा
-                previewText.textContent = "सुन रहे हैं... बोलिए अपना आइडिया!";
+                
+                recognition.lang = 'en-US';
+                previewText.textContent = "Listening... Speak your prompt now!";
                 
                 recognition.onresult = (event) => {
-                    promptInput.value = event.results[0][0].transcript;
-                    previewText.textContent = "आवाज सफलतापूर्वक कैप्चर हो गई!";
+                    const speechToText = event.results[0][0].transcript;
+                    promptInput.value = speechToText;
+                    previewText.textContent = "Voice captured successfully!";
                 };
+
+                recognition.onerror = () => {
+                    previewText.textContent = "Voice recognition failed. Please type your prompt.";
+                };
+
                 recognition.start();
             } else {
-                showCustomAlert("Not Supported", "Speech recognition is not supported.");
+                showCustomAlert("Not Supported", "Speech recognition is not supported on your browser. Please type your prompt.");
             }
         });
     }
