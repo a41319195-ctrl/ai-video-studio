@@ -42,6 +42,13 @@
         .action-btn-success:hover {
             background: #16a34a;
         }
+        .bg-music-label {
+            color: #38bdf8;
+            font-weight: bold;
+            font-size: 13px;
+            display: block;
+            margin-bottom: 6px;
+        }
     </style>
 </head>
 <body>
@@ -114,9 +121,9 @@
                     <div class="select-group">
                         <label for="videoDuration">Duration / Format:</label>
                         <select id="videoDuration">
-                            <option value="30">Shorts / Reel (30 sec) - 5 Coins</option>
-                            <option value="120">Standard (1-2 min) - 10 Coins</option>
-                            <option value="300">Cinematic (5 min) - 20 Coins</option>
+                            <option value="30">Shorts / Reel (30 sec) - 2 Coins</option>
+                            <option value="120">Standard (1-2 min) - 4 Coins</option>
+                            <option value="300">Cinematic (5 min) - 8 Coins</option>
                         </select>
                     </div>
                 </div>
@@ -129,9 +136,9 @@
                 <div class="video-preview-box" id="previewBox" style="text-align: center; display: flex; flex-direction: column; gap: 12px;">
                     <p id="previewText">Your generated video preview will appear here...</p>
                     
-                    <!-- Permanent Visible Music Library -->
+                    <!-- Music Selection Section - Separate from Video Player -->
                     <div class="music-studio-box">
-                        <label for="bgMusicSelect" style="color: #38bdf8; font-weight: bold; font-size: 13px;">🎵 Select Background Music / Track:</label>
+                        <label class="bg-music-label">🎵 Select Background Music / Track:</label>
                         <select id="bgMusicSelect">
                             <option value="none">-- No Background Music --</option>
                             <option value="cinematic">Epic Cinematic Hans Zimmer Style</option>
@@ -139,12 +146,12 @@
                             <option value="upbeat">Upbeat Electronic Corporate Pop</option>
                             <option value="ambient">Ambient Space Meditation Dream</option>
                         </select>
+                        <button id="applyMusicBtn" class="btn-primary" style="width: 100%; margin-top: 6px;">🎵 Apply Music to Video</button>
                     </div>
 
-                    <!-- Permanent Visible Download & Share Action Buttons -->
+                    <!-- Download Button -->
                     <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
                         <a id="downloadVideoBtn" href="#" class="action-btn-success" style="flex: 1; text-align: center;">📥 Download Video</a>
-                        <button id="shareVideoBtn" class="btn-secondary" style="flex: 1;">🔗 Share</button>
                     </div>
                 </div>
             </section>
