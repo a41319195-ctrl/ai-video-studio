@@ -121,6 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     currentUser = null;
                     if (googleLoginBtn) googleLoginBtn.style.display = "block";
                     if (userProfile) userProfile.style.display = "none";
+                    currentCoins = 0;
                     if (userCoinsSpan) userCoinsSpan.textContent = "0";
                 }
             });
@@ -183,7 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     await window.signInWithEmailAndPassword(window.auth, email, password);
                 } catch (loginErr) {
                     if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/wrong-password') {
-                        // Auto Register New User if not found
                         await window.createUserWithEmailAndPassword(window.auth, email, password);
                     } else {
                         throw loginErr;
@@ -206,7 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Sync User Data from Firestore
+    // Sync User Data from Firestore (Fixed: Sets 25 Coins for New Users)
     async function syncUserData(uid, email) {
         try {
             const userRef = window.doc(window.db, "users", uid);
@@ -235,17 +235,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const promptValue = promptInput.value.trim();
-            const resolution = document.getElementById('resolution').value;
+            const resolution = document.getElementById('resolution') ? document.getElementById('resolution').value : "720p";
             const durationSec = videoDurationSelect ? parseInt(videoDurationSelect.value) : 30;
             
             let coinCost = 5; 
             if (durationSec === 120) coinCost = 10; 
             if (durationSec === 300) coinCost = 20; 
-
-            if (durationSec > 30 && currentCoins <= 25) {
-                showCustomAlert("⚠️ Duration Restricted", "Free tier bonus coins can **only** be used for 30-second Shorts/Reels! Please buy a coin package to unlock longer video formats.");
-                return;
-            }
 
             if (!promptValue) {
                 showCustomAlert("Prompt Missing", "Please enter a description or prompt for your video!");
@@ -269,7 +264,6 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
 
             setTimeout(() => {
-                // Video Generated + 100 Song Selection Studio Setup + Download Button
                 let musicOptionsHtml = `<div style="margin-top: 15px; text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155;">
                     <strong style="color: #38bdf8; font-size: 13px;">🎵 Select Background Music / Sound Effect (100+ Library):</strong>
                     <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">Choose a track to automatically attach and merge with your video:</p>
@@ -301,7 +295,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 `;
 
-                // Handle Audio Selection and Application
                 const applyMusicBtn = document.getElementById('applyMusicBtn');
                 if (applyMusicBtn) {
                     applyMusicBtn.onclick = () => {
@@ -369,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Step 2: Crypto USDT (BEP20 Only) Payment & Screenshot Upload Screen
+    // Step 2: Crypto USDT (BEP20 Only) Payment & Screenshot Upload Screen (Connected to Admin Queue)
     function openCryptoUploadModal(paidAmount, addedCoins, userEmail) {
         const cryptoWalletAddress = "0x836d59168b7e9d29aabca5ab67cce52a63e2bda2";
         const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${cryptoWalletAddress}`;
