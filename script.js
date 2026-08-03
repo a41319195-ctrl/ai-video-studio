@@ -18,27 +18,20 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentUser = null;
     let currentCoins = 0;
     let selectedTrackUrl = ""; 
+    let backgroundAudioElement = null;
 
-    // --- 100 Background Music & Sound Effects Library Array ---
     const backgroundTracks = [
-        { id: 1, name: "Cinematic Epic Trailer", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", category: "Action" },
-        { id: 2, name: "Happy Lo-Fi Beats", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", category: "Chill" },
-        { id: 3, name: "Energetic Vlog Pop", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", category: "Vlog" },
-        { id: 4, name: "Emotional Piano Melody", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3", category: "Sad" },
-        { id: 5, name: "Tech & Cyberpunk Synth", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3", category: "Futuristic" },
-        { id: 6, name: "Corporate Upbeat", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3", category: "Business" },
-        { id: 7, name: "Ambient Relaxing Waves", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3", category: "Relax" },
-        { id: 8, name: "Action Beat Drop", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3", category: "Action" },
-        { id: 9, name: "Acoustic Guitar Sunshine", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3", category: "Vlog" },
-        { id: 10, name: "Space Odyssey Synth", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3", category: "Futuristic" }
+        { id: 1, name: "Epic Cinematic Hans Zimmer Style", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", category: "Cinematic" },
+        { id: 2, name: "Chill Lofi Beats & Study Vibes", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", category: "Chill" },
+        { id: 3, name: "Upbeat Electronic Corporate Pop", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", category: "Upbeat" },
+        { id: 4, name: "Ambient Space Meditation Dream", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3", category: "Ambient" }
     ];
 
-    // --- Create Custom Modern Modal Container ---
     const modalOverlay = document.createElement('div');
     modalOverlay.id = 'customModalOverlay';
     modalOverlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
+        background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
         display: none; justify-content: center; align-items: center; z-index: 10000;
     `;
     modalOverlay.innerHTML = `
@@ -81,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Sidebar Toggle
     if (menuBtn && sidebar && closeMenu) {
         menuBtn.addEventListener('click', () => sidebar.classList.add('active'));
         closeMenu.addEventListener('click', () => sidebar.classList.remove('active'));
@@ -95,14 +87,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Firebase Auth State Listener & Real-time Coin Sync
     setTimeout(async () => {
         if (window.auth && window.getRedirectResult) {
-            try {
-                await window.getRedirectResult(window.auth);
-            } catch (error) {
-                console.error("Redirect Login Error:", error);
-            }
+            try { await window.getRedirectResult(window.auth); } catch (e) {}
         }
 
         if (window.onAuthStateChanged && window.auth) {
@@ -112,7 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (googleLoginBtn) googleLoginBtn.style.display = "none";
                     if (userProfile) userProfile.style.display = "flex";
                     if (userName) userName.textContent = user.displayName || user.email;
-
                     await syncUserData(user.uid, user.email);
                 } else {
                     currentUser = null;
@@ -125,34 +111,31 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }, 1000);
 
-    // Google Login Trigger with Fallback to Email Modal
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
             try {
                 await window.signInWithPopup(window.auth, window.googleProvider);
-            } catch (popupError) {
-                console.warn("Popup failed, trying redirect or email auth...", popupError);
+            } catch (e) {
                 try {
                     await window.signInWithRedirect(window.auth, window.googleProvider);
-                } catch (redirectError) {
+                } catch (err) {
                     openEmailAuthModal();
                 }
             }
         });
     }
 
-    // Email & Password Auth Modal (Guaranteed 25 Coins for New Registrations)
     function openEmailAuthModal() {
         document.getElementById('modalTitle').textContent = "🔐 Login / Register";
         document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
             <div style="font-size: 13px; margin-bottom: 15px;">
-                <p style="color: #f8fafc; margin-bottom: 10px; font-size: 12px;">Enter email & password. New accounts get 🪙 **25 Free Coins** instantly!</p>
+                <p style="color: #f8fafc; margin-bottom: 10px; font-size: 12px;">New accounts get 🪙 **25 Free Coins** instantly!</p>
                 <label style="display:block; margin-bottom:4px; color:#f8fafc; font-weight:600;">Email Address:</label>
                 <input type="email" id="authEmail" placeholder="name@example.com" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 12px; box-sizing: border-box;">
                 
                 <label style="display:block; margin-bottom:4px; color:#f8fafc; font-weight:600;">Password:</label>
-                <input type="password" id="authPassword" placeholder="Enter password (min 6 chars)" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box;">
+                <input type="password" id="authPassword" placeholder="Enter password" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box;">
             </div>
         `;
         document.getElementById('modalActionContainer').innerHTML = `
@@ -180,19 +163,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 try {
                     userCred = await window.signInWithEmailAndPassword(window.auth, email, password);
                 } catch (loginErr) {
-                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential' || loginErr.code === 'auth/wrong-password') {
-                        userCred = await window.createUserWithEmailAndPassword(window.auth, email, password);
-                        // Grant 25 Free Coins immediately upon registration
-                        const userRef = window.doc(window.db, "users", userCred.user.uid);
-                        await window.setDoc(userRef, { coins: 25, email: email }, { merge: true });
-                    } else {
-                        throw loginErr;
-                    }
+                    userCred = await window.createUserWithEmailAndPassword(window.auth, email, password);
+                    const userRef = window.doc(window.db, "users", userCred.user.uid);
+                    await window.setDoc(userRef, { coins: 25, email: email }, { merge: true });
                 }
                 modalOverlay.style.display = 'none';
                 showCustomAlert("Success", "Logged in / Registered successfully with 🪙 25 Free Coins!", true);
             } catch (err) {
-                console.error("Auth Error:", err);
                 alert("Authentication Failed: " + err.message);
             }
         };
@@ -205,7 +182,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Robust Sync User Data with Firestore
     async function syncUserData(uid, email) {
         try {
             const userRef = window.doc(window.db, "users", uid);
@@ -214,19 +190,17 @@ document.addEventListener("DOMContentLoaded", () => {
             if (userSnap.exists() && userSnap.data().coins !== undefined) {
                 currentCoins = userSnap.data().coins;
             } else {
-                currentCoins = 25; // 25 Free Coins Guarantee for New / Uninitialized Users
+                currentCoins = 25; 
                 await window.setDoc(userRef, { coins: currentCoins, email: email }, { merge: true });
-                showCustomAlert("🎁 Welcome Bonus!", "You have received **🪙 25 Free Coins**! You can create up to **5 free 30-second videos**.", true);
+                showCustomAlert("🎁 Welcome Bonus!", "You have received **🪙 25 Free Coins**!", true);
             }
             updateCoinDisplay();
         } catch (error) {
-            console.error("Error syncing user data:", error);
             currentCoins = 25;
             updateCoinDisplay();
         }
     }
 
-    // Video Generation Logic
     if (generateBtn) {
         generateBtn.addEventListener('click', async () => {
             if (!currentUser) {
@@ -249,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (currentCoins < coinCost) {
-                showCustomAlert("❌ Insufficient Coins", `You need 🪙 ${coinCost} coins, but you have 🪙 ${currentCoins}. Please recharge your balance to continue.`);
+                showCustomAlert("❌ Insufficient Coins", `You need 🪙 ${coinCost} coins, but you have 🪙 ${currentCoins}. Please recharge to continue.`);
                 openRechargeModal();
                 return;
             }
@@ -258,65 +232,87 @@ document.addEventListener("DOMContentLoaded", () => {
             saveCoinsToFirestore();
 
             previewText.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                    <div style="width: 30px; height: 30px; border: 3px solid #3b82f6; border-top: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <p>Spent 🪙 ${coinCost} Coins.<br>Generating your cinematic ${resolution} video (${durationSec}s)...<br><span style="font-size: 12px; color: #94a3b8;">Synthesizing visuals & preparing studio...</span></p>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 30px 0;">
+                    <div style="width: 35px; height: 35px; border: 3px solid #3b82f6; border-top: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="color: #f8fafc; font-weight: 500;">Spent 🪙 ${coinCost} Coins.<br>Generating your cinematic ${resolution} video (${durationSec}s)...</p>
                 </div>
             `;
 
             setTimeout(() => {
-                let musicOptionsHtml = `<div style="margin-top: 15px; text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155;">
-                    <strong style="color: #38bdf8; font-size: 13px;">🎵 Select Background Music / Sound Effect (100+ Library):</strong>
-                    <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">Choose a track to automatically attach and merge with your video:</p>
-                    <select id="bgMusicSelectDropdown" style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
-                        <option value="">-- No Music (Silent Video) --</option>`;
+                let musicOptionsHtml = `
+                    <div style="margin-top: 15px; text-align: left; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155;">
+                        <label style="color: #38bdf8; font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">🎵 Select Background Music / Sound Effect:</label>
+                        <select id="bgMusicSelectDropdown" style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px; margin-bottom: 8px;">
+                            <option value="">-- No Background Music (Original Audio) --</option>`;
                 
                 backgroundTracks.forEach(track => {
                     musicOptionsHtml += `<option value="${track.url}">${track.name} (${track.category})</option>`;
                 });
 
                 musicOptionsHtml += `</select>
-                    <button id="applyMusicBtn" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;">Apply & Merge Audio</button>
-                </div>`;
+                        <button id="applyMusicBtn" style="background: #3b82f6; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%;">Apply & Play with Track</button>
+                    </div>`;
 
                 previewText.innerHTML = `
-                    <div style="color: #22c55e; font-weight: 600; margin-bottom: 8px;">
-                        ✅ Video Generated Successfully!<br>
-                        <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">Deducted: 🪙 ${coinCost} Coins | Remaining: 🪙 ${currentCoins.toLocaleString()} Coins</span>
+                    <div style="color: #22c55e; font-weight: 600; margin-bottom: 8px; font-size: 13px;">
+                        ✅ Video Generated Successfully! <span style="color: #94a3b8; font-weight: normal;">(🪙 Remaining: ${currentCoins.toLocaleString()})</span>
                     </div>
-                    <video id="finalVideoPlayer" controls width="100%" style="border-radius: 8px; margin-top: 6px; max-height: 200px;">
-                        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-                        Your browser does not support HTML video.
-                    </video>
                     
+                    <div style="width: 100%; background: #000; border-radius: 8px; overflow: hidden; border: 1px solid #334155;">
+                        <video id="finalVideoPlayer" controls width="100%" style="display: block; max-height: 200px; background: #000;">
+                            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                            Your browser does not support HTML video.
+                        </video>
+                    </div>
+
                     ${musicOptionsHtml}
 
                     <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
-                        <a id="downloadVideoBtn" href="https://www.w3schools.com/html/mov_bbb.mp4" download="ai-generated-video.mp4" style="text-decoration: none; padding: 10px 20px; background: #22c55e; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block;">📥 डाउनलोड वीडियो (Download)</a>
+                        <a id="downloadVideoBtn" href="https://www.w3schools.com/html/mov_bbb.mp4" download="ai-generated-video.mp4" style="text-decoration: none; padding: 12px 20px; background: #22c55e; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; display: block; text-align: center; width: 100%;">📥 डाउनलोड वीडियो (Download Video)</a>
                     </div>
                 `;
 
+                const videoPlayer = document.getElementById('finalVideoPlayer');
                 const applyMusicBtn = document.getElementById('applyMusicBtn');
+
                 if (applyMusicBtn) {
                     applyMusicBtn.onclick = () => {
                         const selectBox = document.getElementById('bgMusicSelectDropdown');
                         selectedTrackUrl = selectBox.value;
+
+                        if (backgroundAudioElement) {
+                            backgroundAudioElement.pause();
+                            backgroundAudioElement = null;
+                        }
+
                         if (selectedTrackUrl) {
-                            showCustomAlert("🎵 Music Applied!", "Background track has been successfully merged with your video!", true);
+                            backgroundAudioElement = new Audio(selectedTrackUrl);
+                            backgroundAudioElement.loop = true;
+                            
+                            videoPlayer.onplay = () => backgroundAudioElement.play().catch(e => {});
+                            videoPlayer.onpause = () => backgroundAudioElement.pause();
+                            videoPlayer.onseeking = () => { backgroundAudioElement.currentTime = videoPlayer.currentTime; };
+
+                            backgroundAudioElement.play().then(() => {
+                                videoPlayer.play();
+                                showCustomAlert("🎵 Music Playing!", "Selected background track is playing in sync with your video!", true);
+                            }).catch(err => {
+                                showCustomAlert("Notice", "Click play on the video player to start audio.");
+                            });
                         } else {
-                            showCustomAlert("Notice", "No music selected. Video remains as is.");
+                            if (backgroundAudioElement) backgroundAudioElement.pause();
+                            showCustomAlert("Notice", "Audio track removed.");
                         }
                     };
                 }
 
-            }, 4000);
+            }, 3500);
         });
     }
 
-    // Recharge Modal & Crypto Packages
     function openRechargeModal() {
         if (!currentUser) {
-            showCustomAlert("Login Required", "Please login first to buy coin packages!");
+            showCustomAlert("Login Required", "Please login first!");
             openEmailAuthModal();
             return;
         }
@@ -331,7 +327,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     <option value="2|20|300" selected>$20 -> 🪙 300 Coins (20 Bonus 🔥)</option>
                     <option value="3|40|630">$40 -> 🪙 630 Coins (70 Bonus 🔥🔥)</option>
                     <option value="4|60|1000">$60 -> 🪙 1,000 Coins (160 Bonus 🔥🔥🔥)</option>
-                    <option value="5|120|2150">$120 -> 🪙 2,150 Coins (470 Massive Bonus 👑)</option>
                 </select>
                 <label style="display:block; margin-bottom:8px; color:#f8fafc; font-weight:600;">Your Registered Email:</label>
                 <input type="email" id="rechargeEmailInput" value="${currentUser.email || ''}" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box;">
@@ -340,7 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modalActionContainer').innerHTML = `
             <div style="display: flex; gap: 10px;">
                 <button id="cancelModalBtn" style="flex: 1; background: #475569; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cancel</button>
-                <button id="proceedToPayBtn" style="flex: 1; background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Proceed to Crypto Payment</button>
+                <button id="proceedToPayBtn" style="flex: 1; background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Proceed to Crypto</button>
             </div>
         `;
         modalOverlay.style.display = 'flex';
@@ -358,7 +353,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert("Please enter a valid email address!");
                 return;
             }
-
             openCryptoUploadModal(paidAmount, addedCoins, userEmail);
         };
     }
@@ -367,96 +361,58 @@ document.addEventListener("DOMContentLoaded", () => {
         const cryptoWalletAddress = "0x836d59168b7e9d29aabca5ab67cce52a63e2bda2";
         const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${cryptoWalletAddress}`;
 
-        document.getElementById('modalTitle').textContent = "🪙 USDT Crypto Payment (BEP20 Only)";
+        document.getElementById('modalTitle').textContent = "🪙 USDT Crypto Payment (BEP20)";
         document.getElementById('modalTitle').style.color = "#38bdf8";
         document.getElementById('modalBody').innerHTML = `
             <div style="font-size: 13px; margin-bottom: 12px; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed #38bdf8; text-align: left;">
-                <strong style="color: #38bdf8;">Step 1: Send USDT via BEP20 Network</strong><br>
-                Plan Amount: <strong style="color: #22c55e; font-size: 16px;">$${paidAmount} USDT</strong> (For <b>🪙 ${addedCoins} Coins</b>)<br>
-                <span style="color: #fACC15; font-size: 11px; font-weight: bold;">⚠️ Note: Only send USDT using BSC (BEP20) Network!</span><br><br>
-
-                <div style="text-align: center; margin-bottom: 10px;">
-                    <p style="font-size: 11px; color: #94a3b8; margin-bottom: 6px;">Scan QR Code using Binance / Trust Wallet:</p>
-                    <img src="${qrCodeApiUrl}" alt="Crypto QR Code" style="width: 140px; height: 140px; background: white; padding: 6px; border-radius: 6px; border: 2px solid #334155;">
+                <strong style="color: #38bdf8;">Step 1: Send $${paidAmount} USDT (BEP20)</strong><br>
+                <div style="text-align: center; margin: 10px 0;">
+                    <img src="${qrCodeApiUrl}" alt="QR" style="width: 130px; height: 130px; background: white; padding: 5px; border-radius: 6px;">
                 </div>
-
-                <p style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Wallet Address (BEP20):</p>
-                <div style="background: #1e293b; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 11px; word-break: break-all; color: #38bdf8; border: 1px solid #475569;">
+                <div style="background: #1e293b; padding: 6px; border-radius: 4px; font-family: monospace; font-size: 11px; word-break: break-all; color: #38bdf8;">
                     ${cryptoWalletAddress}
                 </div>
             </div>
-
             <div style="font-size: 13px; margin-bottom: 12px; text-align: left;">
-                <strong style="color: #38bdf8;">Step 2: Upload Payment Screenshot</strong><br>
-                <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 8px 0;">After successful transfer, upload your transaction screenshot/receipt below.</p>
-                <input type="file" id="paymentScreenshotInput" accept="image/*" style="width: 100%; padding: 8px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box; font-size: 12px;">
+                <strong style="color: #38bdf8;">Step 2: Upload Screenshot</strong>
+                <input type="file" id="paymentScreenshotInput" accept="image/*" style="width: 100%; margin-top: 6px; padding: 6px; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 12px;">
             </div>
         `;
-
         document.getElementById('modalActionContainer').innerHTML = `
-            <div style="display: flex; gap: 10px;">
-                <button id="backToPackageBtn" style="flex: 1; background: #475569; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Back</button>
-                <button id="submitPaymentProofBtn" style="flex: 1; background: #22c55e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Submit Proof</button>
-            </div>
+            <button id="submitPaymentProofBtn" style="background: #22c55e; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">Submit Payment Proof</button>
         `;
-
-        document.getElementById('backToPackageBtn').onclick = () => {
-            openRechargeModal();
-        };
 
         document.getElementById('submitPaymentProofBtn').onclick = async () => {
             const fileInput = document.getElementById('paymentScreenshotInput');
             const file = fileInput.files[0];
-
             if (!file) {
-                alert("Please upload the payment screenshot/receipt!");
+                alert("Please upload the payment screenshot!");
                 return;
             }
 
-            const submitBtn = document.getElementById('submitPaymentProofBtn');
-            submitBtn.textContent = "Uploading & Submitting...";
-            submitBtn.disabled = true;
-
-            try {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = async () => {
-                    const base64Image = reader.result;
-
-                    const paymentRef = window.doc(window.db, "payments", `${currentUser.uid}_${Date.now()}`);
-                    await window.setDoc(paymentRef, {
-                        uid: currentUser.uid,
-                        email: userEmail,
-                        amount: parseInt(paidAmount),
-                        coins: parseInt(addedCoins),
-                        method: "USDT Crypto (BEP20)",
-                        screenshot: base64Image,
-                        status: "pending",
-                        timestamp: new Date().toISOString()
-                    });
-
-                    showCustomAlert("⏳ Request Submitted Successfully!", `Your crypto payment receipt has been uploaded and sent to the Admin.<br>The admin will verify your transaction and credit 🪙 <b>${addedCoins} Coins</b> to your account shortly!`, true);
-                };
-
-                reader.onerror = (error) => {
-                    console.error("Error reading file:", error);
-                    alert("Failed to read image file. Try again.");
-                    submitBtn.textContent = "Submit Proof";
-                    submitBtn.disabled = false;
-                };
-
-            } catch (error) {
-                console.error("Error submitting payment:", error);
-                showCustomAlert("Error", "Failed to submit payment proof. Try again.");
-                submitBtn.textContent = "Submit Proof";
-                submitBtn.disabled = false;
-            }
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64Image = reader.result;
+                const paymentRef = window.doc(window.db, "payments", `${currentUser.uid}_${Date.now()}`);
+                await window.setDoc(paymentRef, {
+                    uid: currentUser.uid,
+                    email: userEmail,
+                    amount: parseInt(paidAmount),
+                    coins: parseInt(addedCoins),
+                    method: "USDT Crypto (BEP20)",
+                    screenshot: base64Image,
+                    status: "pending",
+                    timestamp: new Date().toISOString()
+                });
+                showCustomAlert("⏳ Success!", "Payment proof submitted! Admin will verify and credit your coins.", true);
+            };
         };
     }
 
     function updateCoinDisplay() {
         if (userCoinsSpan) {
-            userCoinsSpan.textContent = currentCoins.toLocaleString();
+            userCoinsSpan.innerHTML = `🪙 ${currentCoins.toLocaleString()}`;
         }
     }
 
@@ -466,35 +422,24 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const userRef = window.doc(window.db, "users", currentUser.uid);
                 await window.setDoc(userRef, { coins: currentCoins }, { merge: true });
-            } catch (error) {
-                console.error("Error saving coins to DB:", error);
-            }
+            } catch (error) {}
         }
     }
 
-    // Voice Command Speech-to-Text
     if (micBtn) {
         micBtn.addEventListener('click', () => {
             if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
-                
                 recognition.lang = 'en-US';
-                previewText.textContent = "Listening... Speak your prompt now!";
-                
+                previewText.textContent = "Listening... Speak now!";
                 recognition.onresult = (event) => {
-                    const speechToText = event.results[0][0].transcript;
-                    promptInput.value = speechToText;
-                    previewText.textContent = "Voice captured successfully!";
+                    promptInput.value = event.results[0][0].transcript;
+                    previewText.textContent = "Voice captured!";
                 };
-
-                recognition.onerror = () => {
-                    previewText.textContent = "Voice recognition failed. Please type your prompt.";
-                };
-
                 recognition.start();
             } else {
-                showCustomAlert("Not Supported", "Speech recognition is not supported on your browser. Please type your prompt.");
+                showCustomAlert("Not Supported", "Speech recognition not supported.");
             }
         });
     }
@@ -503,7 +448,7 @@ document.addEventListener("DOMContentLoaded", () => {
         imageUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                previewText.innerHTML = `📁 Image Loaded: <strong>${file.name}</strong><br><span style="font-size: 12px; color: #94a3b8;">Ready for Image-to-Video conversion.</span>`;
+                previewText.innerHTML = `📁 Image Loaded: <strong>${file.name}</strong>`;
             }
         });
     }
