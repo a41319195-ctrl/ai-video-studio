@@ -3,335 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Admin Dashboard - Payroll SaaS</title>
     <style>
-        #authOverlay {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background:#0f172a; display:flex; justify-content:center; align-items:center; z-index:9999;
-        }
-        .auth-box {
-            background:#1e293b; padding:30px; border-radius:12px;
-            border:1px solid #334155; width:320px; text-align:center;
-        }
-        .auth-box input {
-            width:100%; padding:10px; margin-bottom:12px;
-            background:#0f172a; border:1px solid #475569; color:white;
-            border-radius:6px; box-sizing:border-box;
-        }
-        .admin-container {
-            max-width:1000px; margin:0 auto; padding:20px; display:none;
-        }
-        .admin-coins {
-            background:#0f172a; padding:12px 20px; border-radius:8px;
-            border:1px solid #334155; display:flex; align-items:center; gap:12px; margin-bottom:20px;
-        }
-        .admin-coins .value { color:#ffcc00; font-size:20px; font-weight:bold; }
-        .stats-grid {
-            display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-bottom:20px;
-        }
-        .stat-card { background:#1e293b; padding:16px; border-radius:8px; border:1px solid #334155; }
-        .stat-card .value { font-size:20px; font-weight:bold; color:#38bdf8; }
-        .section-box { background:#1e293b; padding:16px; border-radius:8px; border:1px solid #334155; margin-bottom:16px; }
-        table { width:100%; border-collapse:collapse; font-size:13px; }
-        th, td { padding:8px 10px; border-bottom:1px solid #334155; text-align:left; }
-        .btn-action { padding:4px 10px; border-radius:4px; border:none; cursor:pointer; font-weight:600; font-size:11px; }
-        .btn-approve { background:#22c55e; color:white; }
-        .btn-reject { background:#ef4444; color:white; }
-        .form-row { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
-        .form-group label { display:block; font-size:12px; color:#94a3b8; margin-bottom:4px; }
-        .form-group input { width:100%; padding:8px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; box-sizing:border-box; }
-        .search-result { background:#0f172a; padding:6px 10px; border-radius:4px; margin-top:6px; font-size:12px; display:none; border:1px solid #334155; }
-        .found { color:#22c55e; }
-        .not-found { color:#ef4444; }
-        .refresh-btn { background:#3b82f6; color:white; border:none; padding:4px 12px; border-radius:4px; cursor:pointer; }
-        @media (max-width:600px) { .form-row { grid-template-columns:1fr; } }
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 50px; }
+        .admin-card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 400px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #api-key-display { margin-top: 20px; padding: 10px; background: #e9ecef; border: 1px dashed #666; word-break: break-all; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="authOverlay">
-    <div class="auth-box">
-        <h2>🔐 Admin</h2>
-        <input type="password" id="adminPasswordInput" placeholder="Enter password...">
-        <button class="btn-primary" id="loginAdminBtn">Login</button>
-        <p id="authError" style="color:#ef4444; font-size:12px; margin-top:8px; display:none;">Wrong password!</p>
-    </div>
-</div>
+    <div class="admin-card">
+        <h2>Company Registration</h2>
+        <form id="reg-form">
+            <input type="text" id="comp-name" placeholder="Company Name" required>
+            <input type="email" id="comp-email" placeholder="Email Address" required>
+            <select id="plan-select" style="width: 100%; padding: 10px; margin: 5px 0;">
+                <option value="basic">Basic Plan (12,000 SAR)</option>
+                <option value="pro">Pro Plan (25,000 SAR)</option>
+            </select>
+            <button type="submit">Complete Payment & Register</button>
+        </form>
 
-<div class="admin-container" id="adminMainContent">
-    <nav class="navbar">
-        <a href="index.html" style="color:#94a3b8; text-decoration:none;">🏠 Back</a>
-        <div class="logo">👑 Admin</div>
-        <button class="refresh-btn" id="refreshBtn">🔄</button>
-    </nav>
-
-    <div class="admin-coins">
-        <span>🏦 Admin Vault:</span>
-        <span class="value" id="adminCoinsDisplay">🪙 1,000,000</span>
-    </div>
-
-    <div class="stats-grid">
-        <div class="stat-card"><h4>Balance</h4><div class="value" id="walletBalance">1,000,000</div></div>
-        <div class="stat-card"><h4>Pending</h4><div class="value" id="pendingCount">0</div></div>
-        <div class="stat-card"><h4>Status</h4><div class="value" style="color:#22c55e;">🟢 Online</div></div>
-    </div>
-
-    <div class="section-box">
-        <h3>🎁 Credit Free Coins</h3>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Email or UID:</label>
-                <input type="text" id="freeUserIdentifier" placeholder="user@gmail.com">
-                <div class="search-result" id="userSearchResult"></div>
-            </div>
-            <div class="form-group">
-                <label>Coins:</label>
-                <input type="number" id="freeCoinsAmount" value="100">
-            </div>
-            <button class="btn-primary" id="creditFreeCoinsBtn" style="height:38px;">➕ Credit</button>
+        <div id="api-key-section" style="display:none;">
+            <p>Your API Key:</p>
+            <div id="api-key-display"></div>
+            <p><small>Copy this key to your local Dashboard settings.</small></p>
         </div>
     </div>
 
-    <div class="section-box">
-        <h3>📋 Payment Queue</h3>
-        <table>
-            <thead><tr><th>User</th><th>Amount</th><th>Coins</th><th>Proof</th><th>Action</th></tr></thead>
-            <tbody id="paymentQueueBody"><tr><td colspan="5" style="text-align:center; color:#94a3b8;">Loading...</td></tr></tbody>
-        </table>
-    </div>
-</div>
-
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
-        authDomain: "ai-video-studio-global.firebaseapp.com",
-        projectId: "ai-video-studio-global",
-        storageBucket: "ai-video-studio-global.firebasestorage.app",
-        messagingSenderId: "62203997603",
-        appId: "1:62203997603:web:9ce058c677c9e13e75fe16",
-        measurementId: "G-6D2C6T5HHH"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const ADMIN_WALLET_ID = "admin_wallet";
-    const ADMIN_PASSWORD = "Hak0786@";
-
-    const authOverlay = document.getElementById('authOverlay');
-    const adminMain = document.getElementById('adminMainContent');
-    const adminPass = document.getElementById('adminPasswordInput');
-    const loginBtn = document.getElementById('loginAdminBtn');
-    const authError = document.getElementById('authError');
-    const adminCoinsDisplay = document.getElementById('adminCoinsDisplay');
-    const walletBalance = document.getElementById('walletBalance');
-    const pendingCount = document.getElementById('pendingCount');
-    const paymentQueue = document.getElementById('paymentQueueBody');
-    const freeUser = document.getElementById('freeUserIdentifier');
-    const freeCoins = document.getElementById('freeCoinsAmount');
-    const creditBtn = document.getElementById('creditFreeCoinsBtn');
-    const searchResult = document.getElementById('userSearchResult');
-    const refreshBtn = document.getElementById('refreshBtn');
-
-    let currentBalance = 1000000;
-    let debounceTimer = null;
-
-    async function getAdminBalance() {
-        try {
-            const ref = doc(db, "system", ADMIN_WALLET_ID);
-            const snap = await getDoc(ref);
-            return snap.exists() ? snap.data().totalCoins || 1000000 : 1000000;
-        } catch (e) { return 1000000; }
-    }
-
-    async function updateAdminBalance(newBal) {
-        const ref = doc(db, "system", ADMIN_WALLET_ID);
-        await setDoc(ref, { totalCoins: newBal, lastUpdated: new Date().toISOString() }, { merge: true });
-        return newBal;
-    }
-
-    async function deductAdmin(amount) {
-        const bal = await getAdminBalance();
-        if (bal < amount) throw new Error("Insufficient admin balance!");
-        const newBal = bal - amount;
-        await updateAdminBalance(newBal);
-        return newBal;
-    }
-
-    async function addUserCoins(uid, amount) {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-        let cur = userSnap.exists() ? userSnap.data().coins || 0 : 0;
-        await deductAdmin(amount);
-        const newBal = cur + amount;
-        await setDoc(userRef, { coins: newBal }, { merge: true });
-        return newBal;
-    }
-
-    async function findUser(email) {
-        try {
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("email", "==", email));
-            const snap = await getDocs(q);
-            if (snap.empty) return null;
-            return snap.docs[0];
-        } catch (e) { return null; }
-    }
-
-    async function findUserByUID(uid) {
-        try {
-            const ref = doc(db, "users", uid);
-            const snap = await getDoc(ref);
-            if (snap.exists()) return { id: uid, data: snap.data() };
-            return null;
-        } catch (e) { return null; }
-    }
-
-    function showAlert(msg) {
-        alert(msg);
-    }
-
-    async function loadPayments() {
-        try {
-            const snap = await getDocs(collection(db, "payments"));
-            paymentQueue.innerHTML = '';
-            let count = 0;
-            snap.forEach(doc => {
-                const data = doc.data();
-                if (data.status === "pending") {
-                    count++;
-                    const row = document.createElement('tr');
-                    const proof = data.screenshot ? 
-                        `<a href="${data.screenshot}" target="_blank" style="color:#38bdf8;">🖼️ View</a>` : 
-                        'No image';
-                    row.innerHTML = `
-                        <td>${data.email || 'N/A'}</td>
-                        <td>$${data.amount || 0}</td>
-                        <td>🪙${data.coins || 0}</td>
-                        <td>${proof}</td>
-                        <td>
-                            <button class="btn-action btn-approve" onclick="window.approve('${doc.id}','${data.uid}',${data.coins})">Approve</button>
-                            <button class="btn-action btn-reject" onclick="window.reject('${doc.id}')">Reject</button>
-                        </td>
-                    `;
-                    paymentQueue.appendChild(row);
-                }
-            });
-            if (count === 0) paymentQueue.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">No pending payments</td></tr>`;
-            pendingCount.textContent = count;
-        } catch (e) { paymentQueue.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444;">Error loading</td></tr>`; }
-    }
-
-    window.approve = async function(id, uid, coins) {
-        try {
-            await addUserCoins(uid, coins);
-            await deleteDoc(doc(db, "payments", id));
-            showAlert(`✅ ${coins} coins credited!`);
-            await loadPayments();
-            await updateDisplay();
-        } catch (e) { showAlert("Error: " + e.message); }
-    };
-
-    window.reject = async function(id) {
-        try {
-            await deleteDoc(doc(db, "payments", id));
-            showAlert("❌ Rejected");
-            await loadPayments();
-        } catch (e) { showAlert("Error: " + e.message); }
-    };
-
-    async function updateDisplay() {
-        const bal = await getAdminBalance();
-        currentBalance = bal;
-        const formatted = bal.toLocaleString();
-        adminCoinsDisplay.textContent = `🪙 ${formatted}`;
-        walletBalance.textContent = formatted;
-    }
-
-    // Search user on typing
-    freeUser.addEventListener('input', function() {
-        clearTimeout(debounceTimer);
-        const val = this.value.trim();
-        if (val.length < 3) { searchResult.style.display = 'none'; return; }
-        debounceTimer = setTimeout(async () => {
-            try {
-                let result = null;
-                if (val.includes('@')) {
-                    const doc = await findUser(val);
-                    if (doc) result = { id: doc.id, data: doc.data() };
-                } else {
-                    result = await findUserByUID(val);
-                }
-                if (result) {
-                    searchResult.style.display = 'block';
-                    searchResult.innerHTML = `<div class="found">✅ ${result.data.email || result.id}</div>`;
-                    creditBtn.dataset.uid = result.id;
-                } else {
-                    searchResult.style.display = 'block';
-                    searchResult.innerHTML = `<div class="not-found">❌ User not found</div>`;
-                    creditBtn.dataset.uid = '';
-                }
-            } catch (e) {
-                searchResult.style.display = 'block';
-                searchResult.innerHTML = `<div class="not-found">❌ Error</div>`;
-                creditBtn.dataset.uid = '';
-            }
-        }, 500);
-    });
-
-    creditBtn.addEventListener('click', async () => {
-        const identifier = freeUser.value.trim();
-        const amount = parseInt(freeCoins.value);
-        if (!identifier) { showAlert("Enter email or UID!"); return; }
-        if (isNaN(amount) || amount <= 0) { showAlert("Enter valid amount!"); return; }
-        
-        try {
-            let uid = creditBtn.dataset.uid;
-            if (!uid) {
-                if (identifier.includes('@')) {
-                    const doc = await findUser(identifier);
-                    if (doc) uid = doc.id;
-                } else {
-                    const result = await findUserByUID(identifier);
-                    if (result) uid = result.id;
-                }
-            }
-            if (!uid) { showAlert("User not found!"); return; }
-            await addUserCoins(uid, amount);
-            showAlert(`✅ ${amount} coins credited!`);
-            freeUser.value = '';
-            searchResult.style.display = 'none';
-            creditBtn.dataset.uid = '';
-            await updateDisplay();
-        } catch (e) { showAlert("Error: " + e.message); }
-    });
-
-    loginBtn.addEventListener('click', async () => {
-        if (adminPass.value.trim() === ADMIN_PASSWORD) {
-            authOverlay.style.display = 'none';
-            adminMain.style.display = 'block';
-            await updateDisplay();
-            await loadPayments();
-            // Real-time listener
-            onSnapshot(doc(db, "system", ADMIN_WALLET_ID), () => { updateDisplay(); });
-        } else {
-            authError.style.display = 'block';
-        }
-    });
-
-    adminPass.addEventListener('keypress', (e) => { if (e.key === 'Enter') loginBtn.click(); });
-
-    refreshBtn.addEventListener('click', async () => {
-        await updateDisplay();
-        await loadPayments();
-        showAlert("🔄 Refreshed");
-    });
-
-    setTimeout(async () => { await updateDisplay(); }, 1000);
-</script>
+    <script>
+        document.getElementById('reg-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // यहाँ तुम्हारा बैकएंड से API Key जनरेट करने का लॉजिक आएगा
+            const fakeApiKey = "SAAS-" + Math.random().toString(36).substr(2, 12).toUpperCase();
+            document.getElementById('api-key-display').innerText = fakeApiKey;
+            document.getElementById('api-key-section').style.display = 'block';
+        });
+    </script>
 </body>
 </html>
