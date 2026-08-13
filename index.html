@@ -3,13 +3,33 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Payroll SaaS - Owner</title>
+    <title>Payroll SaaS - Smart Payroll System</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-box">
+
+    <!-- Top Universal Header with Menu Bar -->
+    <header class="main-header">
+        <div class="logo-area">
             <h2>Payroll SaaS</h2>
+        </div>
+        <div class="header-menu">
+            <div class="three-dot-menu">
+                <button id="mainMenuToggle">☰</button>
+                <div id="mainDropdown" class="dropdown-content">
+                    <a href="#" id="openAdminNav">Super Admin Panel</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 1. AUTH SECTION (Login / Register & Purpose) -->
+    <div id="authSection" class="auth-container">
+        <div class="purpose-banner" style="text-align: center; margin-bottom: 20px;">
+            <h3>Welcome to Payroll SaaS</h3>
+            <p style="font-size: 14px; color: #555;">Manage company workers, strict salary slabs, automated IBAN records, and secure corporate payroll seamlessly.</p>
+        </div>
+        <div class="auth-box">
             <div class="toggle-tabs">
                 <span class="tab active" data-tab="login">Login</span>
                 <span class="tab" data-tab="register">Register</span>
@@ -34,6 +54,91 @@
         </div>
     </div>
 
+    <!-- 2. SUPER ADMIN SECTION (Hidden by default, triggered via menu) -->
+    <div id="adminSection" class="admin-container" style="display:none; padding: 20px;">
+        <h1>Super-Admin Panel</h1>
+        <div id="adminLogin">
+            <input type="password" id="adminPass" placeholder="Enter Admin Password" />
+            <button id="adminLoginBtn">Login</button>
+            <button id="backToHomeFromAdmin" style="background: #666; margin-top: 10px;">Back to Home</button>
+        </div>
+        <div id="adminPanel" style="display:none;">
+            <h2>Pending Approvals</h2>
+            <table id="approvalTable">
+                <thead>
+                    <tr><th>Company</th><th>Email</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button id="closeAdminPanel" style="margin-top: 15px;">Close Admin Panel</button>
+        </div>
+    </div>
+
+    <!-- 3. DASHBOARD SECTION (Hidden until owner logs in) -->
+    <div id="dashboardSection" class="dashboard-container" style="display:none;">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <h2>Payroll Dashboard</h2>
+            <div class="top-right">
+                <span id="companyDisplay">Company</span>
+                <div class="three-dot-menu">
+                    <button id="menuToggle">⋮</button>
+                    <div id="menuDropdown" class="dropdown-content">
+                        <a href="#" id="profileLink">Profile & API</a>
+                        <a href="#" id="logoutLink">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Lock -->
+        <div id="subscriptionLock" class="lock-overlay" style="display:none;">
+            <div class="lock-box">
+                <h3>Subscription Expired</h3>
+                <p>Please renew your subscription to continue.</p>
+                <button onclick="showModal('Renew Subscription','Contact admin for renewal.')">OK</button>
+            </div>
+        </div>
+
+        <!-- Profile & API Modal -->
+        <div id="profileModal" class="modal-overlay">
+            <div class="modal-box wide">
+                <h3>Profile & API</h3>
+                <p><strong>Email:</strong> <span id="profEmail"></span></p>
+                <p><strong>Password:</strong> <span id="profPass"></span> <button onclick="togglePassView()">👁️</button></p>
+                <p><strong>Company:</strong> <span id="profCompany"></span></p>
+                <p><strong>API Key:</strong> <span id="profApiKey"></span></p>
+                <p><strong>Webhook URL:</strong> <span id="profWebhook"></span></p>
+                <button onclick="closeProfileModal()">Close</button>
+            </div>
+        </div>
+
+        <!-- Worker Form -->
+        <div class="worker-form">
+            <h3>Add Worker</h3>
+            <input type="text" id="workerName" placeholder="Full Name" />
+            <input type="text" id="workerId" placeholder="Iqama/ID" />
+            <input type="text" id="workerIban" placeholder="IBAN" />
+            <input type="number" id="workerSalary" placeholder="Salary (SAR)" step="0.01" />
+            <button onclick="addWorker()">Add Worker</button>
+        </div>
+
+        <!-- Search & Edit -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search by name or IBAN..." oninput="searchWorker()" />
+        </div>
+
+        <!-- Workers Table -->
+        <table id="workersTable">
+            <thead>
+                <tr><th>Name</th><th>ID</th><th>IBAN</th><th>Salary</th><th>Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <button onclick="submitPayroll()" class="submit-btn">Submit Payroll</button>
+    </div>
+
     <!-- Universal Modal -->
     <div id="universalModal" class="modal-overlay">
         <div class="modal-box">
@@ -43,6 +148,7 @@
         </div>
     </div>
 
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
