@@ -1,136 +1,353 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-// तेरी Firebase कॉन्फ़िगरेशन (सिर्फ ओनर के लॉगिन/रजिस्ट्रेशन को मैनेज करने के लिए)
+// Firebase Config
 const firebaseConfig = {
-  apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
-  authDomain: "ai-video-studio-global.firebaseapp.com",
-  projectId: "ai-video-studio-global",
-  storageBucket: "ai-video-studio-global.firebasestorage.app",
-  messagingSenderId: "62203997603",
-  appId: "1:62203997603:web:9ce058c677c9e13e75fe16",
-  measurementId: "G-6D2C6T5HHH"
+    apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
+    authDomain: "ai-video-studio-global.firebaseapp.com",
+    projectId: "ai-video-studio-global",
+    storageBucket: "ai-video-studio-global.firebasestorage.app",
+    messagingSenderId: "62203997603",
+    appId: "1:62203997603:web:9ce058c677c9e13e75fe16",
+    measurementId: "G-6D2C6T5HHH"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-// लोकल स्टोरेज से कंपनी की आईडी चेक करें
-const companyId = localStorage.getItem('companyId');
-const companyName = localStorage.getItem('companyName');
-
-if (!companyId) {
-    showUniversalPopup("एक्सेस डिनाइड", "कृपया पहले लॉगिन करें!", "index.html");
-} else {
-    const titleElement = document.getElementById('company-title');
-    if (titleElement) {
-        titleElement.innerText = `डैशबोर्ड: ${companyName}`;
-    }
+// ========== UNIVERSAL MODAL ==========
+function showModal(title, message) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalMessage').textContent = message;
+    document.getElementById('universalModal').classList.add('active');
 }
 
-// वर्कर्स का डेटा केवल इसी कंपनी के लोकल स्टोरेज में रहेगा (आपके डेटाबेस में नहीं)
-const storageKey = 'payroll_workers_' + companyId;
-let workers = JSON.parse(localStorage.getItem(storageKey)) || [];
+document.getElementById('modalBtn').addEventListener('click', () => {
+    document.getElementById('universalModal').classList.remove('active');
+});
 
-const payrollForm = document.getElementById('payroll-form');
-const workerListBody = document.getElementById('worker-list-body');
-const payBtn = document.getElementById('pay-now-btn');
-
-// टेबल में वर्कर्स दिखाना
-function renderTable() {
-    if (!workerListBody) return;
-    workerListBody.innerHTML = '';
-    
-    if (workers.length === 0) {
-        workerListBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">कोई वर्कर नहीं जोड़ा गया है।</td></tr>';
-        return;
-    }
-
-    workers.forEach((w, index) => {
-        workerListBody.innerHTML += `
-            <tr>
-                <td>${w.name}</td>
-                <td>${w.iqama}</td>
-                <td>${w.iban}</td>
-                <td>${w.salary}</td>
-                <td><button onclick="window.deleteWorker(${index})" style="background:#ff4757; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:4px;">हटाएं</button></td>
-            </tr>
-        `;
+// ========== INDEX.HTML ==========
+if (document.querySelector('.auth-container')) {
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const form = tab.dataset.tab;
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            document.getElementById(form + 'Form').classList.add('active');
+        });
     });
-}
 
-// नया वर्कर जोड़ना (लोकल स्टोरेज)
-if (payrollForm) {
-    payrollForm.addEventListener('submit', (e) => {
+    // Register
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const newWorker = {
-            name: document.getElementById('worker-name').value,
-            iqama: document.getElementById('iqama-number').value,
-            iban: document.getElementById('iban-number').value,
-            salary: parseFloat(document.getElementById('salary-amount').value)
-        };
-        workers.push(newWorker);
-        localStorage.setItem(storageKey, JSON.stringify(workers));
-        payrollForm.reset();
-        renderTable();
-        showUniversalPopup("सफलता", "वर्कर सफलतापूर्वक जोड़ दिया गया है!");
+        const company = document.getElementById('regCompany').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const password = document.getElementById('regPassword').value.trim();
+        const errorEl = document.getElementById('regError');
+
+        if (!company || !email || !password) {
+            errorEl.textContent = 'All fields required';
+            return;
+        }
+        if (password.length < 6) {
+            errorEl.textContent = 'Password must be at least 6 chars';
+            return;
+        }
+
+        try {
+            const apiKey = 'pay_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+            await db.collection('owners').doc(email).set({
+                company,
+                email,
+                password,
+                status: 'pending',
+                apiKey,
+                webhook: `https://yourdomain.com/webhook/${apiKey}`,
+                subscription: 'active',
+                subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+            });
+            showModal('Registration Success', 'Your account is pending approval from admin.');
+            document.getElementById('registerForm').reset();
+            errorEl.textContent = '';
+        } catch (err) {
+            errorEl.textContent = err.message;
+        }
     });
-}
 
-// वर्कर डिलीट करना
-window.deleteWorker = function(index) {
-    workers.splice(index, 1);
-    localStorage.setItem(storageKey, JSON.stringify(workers));
-    renderTable();
-}
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        const errorEl = document.getElementById('loginError');
 
-// 5000 लिमिट चेक वाला लॉजिक और यूनिवर्सल पॉप-अप
-if (payBtn) {
-    payBtn.addEventListener('click', () => {
-        const highSalaryWorkers = workers.filter(w => w.salary > 5000);
-        
-        if (highSalaryWorkers.length > 0) {
-            showUniversalPopup("⚠️ हाई सैलरी चेतावनी", `चेतावनी: ${highSalaryWorkers.length} वर्कर(्स) की सैलरी 5,000 से अधिक है। कृपया इसे चेक करें।`);
-        } else {
-            showUniversalPopup("सफलता", "पेरोल डेटा लिमिट के अंदर है। बैंक API पर भेजा जा रहा है...");
+        if (!email || !password) {
+            errorEl.textContent = 'All fields required';
+            return;
+        }
+
+        try {
+            const doc = await db.collection('owners').doc(email).get();
+            if (!doc.exists) {
+                errorEl.textContent = 'Account not found';
+                return;
+            }
+            const data = doc.data();
+            if (data.status !== 'approved') {
+                errorEl.textContent = 'Your account is not yet approved by admin.';
+                return;
+            }
+            if (data.password !== password) {
+                errorEl.textContent = 'Invalid password';
+                return;
+            }
+            // Store owner data in localStorage
+            localStorage.setItem('ownerEmail', email);
+            localStorage.setItem('ownerData', JSON.stringify(data));
+            localStorage.setItem('workers', JSON.stringify([]));
+            window.location.href = 'dashboard.html';
+        } catch (err) {
+            errorEl.textContent = err.message;
         }
     });
 }
 
-// --- यूनिवर्सल मॉडर्न पॉप-अप फंक्शन ---
-window.showUniversalPopup = function(title, message, redirectUrl = null) {
-    let modalBox = document.getElementById('universal-modal');
-    
-    if (!modalBox) {
-        const modalHTML = `
-            <div id="universal-modal" style="display:flex; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center;">
-                <div style="background:white; padding:30px; border-radius:15px; width:380px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
-                    <h3 id="uni-title" style="color:#333; margin-top:0; font-size:22px;"></h3>
-                    <p id="uni-msg" style="color:#666; font-size:16px; line-height:1.5;"></p>
-                    <div style="margin-top:20px;">
-                        <button id="uni-ok-btn" style="background:#007bff; color:white; border:none; padding:10px 25px; border-radius:8px; font-weight:bold; cursor:pointer;">ठीक है</button>
-                    </div>
-                </div>
-            </div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        modalBox = document.getElementById('universal-modal');
+// ========== ADMIN.HTML ==========
+if (document.querySelector('.admin-container')) {
+    const ADMIN_PASSWORD = 'admin123';
+
+    function adminLogin() {
+        const pass = document.getElementById('adminPass').value;
+        if (pass === ADMIN_PASSWORD) {
+            document.getElementById('adminLogin').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            loadPendingApprovals();
+        } else {
+            showModal('Error', 'Invalid admin password');
+        }
     }
 
-    document.getElementById('uni-title').innerText = title;
-    document.getElementById('uni-msg').innerText = message;
-    modalBox.style.display = 'flex';
+    async function loadPendingApprovals() {
+        const tbody = document.querySelector('#approvalTable tbody');
+        tbody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+        try {
+            const snapshot = await db.collection('owners').get();
+            tbody.innerHTML = '';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${data.company}</td>
+                    <td>${data.email}</td>
+                    <td>${data.status}</td>
+                    <td>
+                        ${data.status === 'pending' ? `<button onclick="approveOwner('${data.email}')">Approve</button>` : 'Approved'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="4">Error: ${err.message}</td></tr>`;
+        }
+    }
 
-    document.getElementById('uni-ok-btn').onclick = function() {
-        modalBox.style.display = 'none';
-        if (redirectUrl) {
-            window.location.href = redirectUrl;
+    window.approveOwner = async (email) => {
+        try {
+            await db.collection('owners').doc(email).update({ status: 'approved' });
+            showModal('Success', 'Owner approved successfully');
+            loadPendingApprovals();
+        } catch (err) {
+            showModal('Error', err.message);
         }
     };
-};
-
-window.logout = function() {
-    localStorage.clear();
-    window.location.href = "index.html";
 }
 
-renderTable();
+// ========== DASHBOARD.HTML ==========
+if (document.querySelector('.dashboard-container')) {
+    let currentOwner = null;
+    let workers = [];
+
+    // Load owner data
+    function loadOwner() {
+        const data = localStorage.getItem('ownerData');
+        if (!data) {
+            window.location.href = 'index.html';
+            return;
+        }
+        currentOwner = JSON.parse(data);
+        document.getElementById('companyDisplay').textContent = currentOwner.company;
+        // Check subscription
+        const expiry = new Date(currentOwner.subscriptionExpiry);
+        if (expiry < new Date()) {
+            document.getElementById('subscriptionLock').style.display = 'flex';
+        } else {
+            document.getElementById('subscriptionLock').style.display = 'none';
+        }
+        // Load workers from localStorage
+        const stored = localStorage.getItem('workers_' + currentOwner.email);
+        if (stored) {
+            workers = JSON.parse(stored);
+            renderTable();
+        }
+    }
+
+    // Add Worker
+    window.addWorker = function() {
+        const name = document.getElementById('workerName').value.trim();
+        const id = document.getElementById('workerId').value.trim();
+        const iban = document.getElementById('workerIban').value.trim();
+        const salary = parseFloat(document.getElementById('workerSalary').value);
+
+        if (!name || !id || !iban || isNaN(salary)) {
+            showModal('Error', 'All fields are required and salary must be a number');
+            return;
+        }
+
+        // Salary Validation
+        const error = validateSalary(salary);
+        if (error) {
+            showModal('Salary Error', error);
+            return;
+        }
+
+        const worker = { name, id, iban, salary };
+        workers.push(worker);
+        saveWorkers();
+        renderTable();
+        document.getElementById('workerName').value = '';
+        document.getElementById('workerId').value = '';
+        document.getElementById('workerIban').value = '';
+        document.getElementById('workerSalary').value = '';
+    };
+
+    function validateSalary(salary) {
+        if (salary <= 0) return 'Salary must be greater than 0';
+        if (salary > 1000 && salary <= 1000.99) return 'Salary cannot exceed 1000 SAR for this slab';
+        if (salary > 2000 && salary <= 2000.99) return 'Salary cannot exceed 2000 SAR for this slab';
+        if (salary > 3000 && salary <= 3000.99) return 'Salary cannot exceed 3000 SAR for this slab';
+        if (salary > 4000 && salary <= 4000.99) return 'Salary cannot exceed 4000 SAR for this slab';
+        if (salary >= 5000) return 'Salary cannot be 5000 SAR or more (max 4999.99)';
+        return null;
+    }
+
+    function saveWorkers() {
+        localStorage.setItem('workers_' + currentOwner.email, JSON.stringify(workers));
+    }
+
+    function renderTable(filter = '') {
+        const tbody = document.querySelector('#workersTable tbody');
+        let filtered = workers;
+        if (filter) {
+            filtered = workers.filter(w =>
+                w.name.toLowerCase().includes(filter.toLowerCase()) ||
+                w.iban.includes(filter)
+            );
+        }
+        tbody.innerHTML = '';
+        filtered.forEach((w, idx) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${w.name}</td>
+                <td>${w.id}</td>
+                <td>${w.iban}</td>
+                <td>${w.salary.toFixed(2)} SAR</td>
+                <td>
+                    <button onclick="editWorker(${idx})">Edit</button>
+                    <button onclick="deleteWorker(${idx})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    window.searchWorker = function() {
+        const query = document.getElementById('searchInput').value;
+        renderTable(query);
+    };
+
+    window.editWorker = function(index) {
+        const w = workers[index];
+        document.getElementById('workerName').value = w.name;
+        document.getElementById('workerId').value = w.id;
+        document.getElementById('workerIban').value = w.iban;
+        document.getElementById('workerSalary').value = w.salary;
+        // Remove from list
+        workers.splice(index, 1);
+        saveWorkers();
+        renderTable();
+    };
+
+    window.deleteWorker = function(index) {
+        workers.splice(index, 1);
+        saveWorkers();
+        renderTable();
+    };
+
+    window.submitPayroll = function() {
+        // Check for any salary errors
+        let errors = [];
+        workers.forEach((w, idx) => {
+            const err = validateSalary(w.salary);
+            if (err) {
+                errors.push(`Worker #${idx+1} (${w.name}): ${err}`);
+            }
+        });
+        if (errors.length > 0) {
+            showModal('Validation Errors', errors.join('\n'));
+            return;
+        }
+        showModal('Success', 'Payroll submitted successfully!');
+        // Here you can send to server or webhook
+    };
+
+    // Three-dot menu
+    document.getElementById('menuToggle').addEventListener('click', () => {
+        document.querySelector('.three-dot-menu').classList.toggle('active');
+    });
+
+    document.getElementById('profileLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelector('.three-dot-menu').classList.remove('active');
+        showProfileModal();
+    });
+
+    document.getElementById('logoutLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.clear();
+        window.location.href = 'index.html';
+    });
+
+    function showProfileModal() {
+        const data = currentOwner;
+        document.getElementById('profEmail').textContent = data.email;
+        document.getElementById('profPass').textContent = data.password;
+        document.getElementById('profCompany').textContent = data.company;
+        document.getElementById('profApiKey').textContent = data.apiKey;
+        document.getElementById('profWebhook').textContent = data.webhook;
+        document.getElementById('profileModal').classList.add('active');
+    }
+
+    window.closeProfileModal = function() {
+        document.getElementById('profileModal').classList.remove('active');
+    };
+
+    window.togglePassView = function() {
+        const span = document.getElementById('profPass');
+        if (span.textContent === '••••••') {
+            span.textContent = currentOwner.password;
+        } else {
+            span.textContent = '••••••';
+        }
+    };
+
+    // Initialize
+    loadOwner();
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    });
+}
