@@ -1,225 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Company Payroll Dashboard</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .form-group { display: flex; gap: 10px; margin-top: 20px; }
-        input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; flex: 1; }
-        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        button:hover { background: #218838; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #f8f9fa; }
-        
-        /* पॉप-अप मॉडल का डिजाइन */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 400px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .modal-btn { background: #dc3545; margin-top: 15px; }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payroll SaaS - Owner</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h2>Payroll SaaS</h2>
+            <div class="toggle-tabs">
+                <span class="tab active" data-tab="login">Login</span>
+                <span class="tab" data-tab="register">Register</span>
+            </div>
 
-    <div class="container">
-        <div class="header">
-            <h2 id="company-title">Company Dashboard</h2>
-            <button onclick="logout()" style="background: #dc3545; padding: 6px 12px;">Logout</button>
-        </div>
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <input type="email" id="loginEmail" placeholder="Email" required />
+                <input type="password" id="loginPassword" placeholder="Password" required />
+                <button type="submit">Login</button>
+                <p id="loginError" class="error-msg"></p>
+            </form>
 
-        <p>अपनी कंपनी के वर्कर्स की डिटेल्स यहाँ जोड़ें और पेरोल प्रोसेस करें।</p>
-
-        <!-- वर्कर जोड़ने का फॉर्म -->
-        <div class="form-group">
-            <input type="text" id="worker-name" placeholder="Worker Name">
-            <input type="text" id="worker-iban" placeholder="IBAN Number">
-            <input type="number" id="worker-salary" placeholder="Salary Amount">
-            <button onclick="addWorker()">Add Worker</button>
-        </div>
-
-        <!-- वर्कर्स की टेबल -->
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>IBAN</th>
-                    <th>Salary</th>
-                    <th>Action</th>
-                </tr>
-            зня>
-            <tbody id="worker-table-body">
-                <tr><td colspan="4" style="text-align:center;">No workers added yet.</td></tr>
-            </tbody>
-        </table>
-
-        <div style="margin-top: 20px; text-align: right;">
-            <button onclick="processPayroll()" style="background: #007bff; font-size: 1.1rem; padding: 12px 25px;">Process & Send Payroll</button>
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form">
+                <input type="text" id="regCompany" placeholder="Company Name" required />
+                <input type="email" id="regEmail" placeholder="Email" required />
+                <input type="password" id="regPassword" placeholder="Password" minlength="6" required />
+                <button type="submit">Register</button>
+                <p id="regError" class="error-msg"></p>
+            </form>
         </div>
     </div>
 
-    <!-- 5000 लिमिट चेतावनी पॉप-अप मॉडल -->
-    <div id="warning-modal" class="modal">
-        <div class="modal-content">
-            <h3 style="color: #dc3545;">⚠️ High Salary Alert!</h3>
-            <p id="warning-text">चेतावनी: इस फाइल में कुछ ऐसे वर्कर्स हैं जिनकी सैलरी 5,000 से अधिक है। कृपया इसे चेक करें।</p>
-            <button class="modal-btn" onclick="closeModal()">OK, Got It</button>
+    <!-- Universal Modal -->
+    <div id="universalModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modalTitle">Modal</h3>
+            <p id="modalMessage">Message</p>
+            <button id="modalBtn">OK</button>
         </div>
     </div>
 
-    <!-- मुख्य स्क्रिप्ट -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
-            authDomain: "ai-video-studio-global.firebaseapp.com",
-            projectId: "ai-video-studio-global",
-            storageBucket: "ai-video-studio-global.firebasestorage.app",
-            messagingSenderId: "62203997603",
-            appId: "1:62203997603:web:9ce058c677c9e13e75fe16",
-            measurementId: "G-6D2C6T5HHH"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // लोकल स्टोरेज से कंपनी की आईडी चेक करें
-        const companyId = localStorage.getItem('companyId');
-        const companyName = localStorage.getItem('companyName');
-
-        if (!companyId) {
-            alert("Unauthorized access! Please login first.");
-            window.location.href = "index.html";
-        } else {
-            document.getElementById('company-title').innerText = `Dashboard: ${companyName}`;
-            loadWorkers();
-        }
-
-        let currentEditId = null;
-
-        // वर्कर्स लोड करना (सिर्फ इसी कंपनी का डेटा)
-        async function loadWorkers() {
-            const tbody = document.getElementById('worker-table-body');
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Loading...</td></tr>";
-
-            try {
-                const querySnapshot = await getDocs(collection(db, "companies", companyId, "workers"));
-                tbody.innerHTML = "";
-
-                if (querySnapshot.empty) {
-                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No workers added yet.</td></tr>";
-                    return;
-                }
-
-                querySnapshot.forEach((docSnap) => {
-                    const worker = docSnap.data();
-                    const id = docSnap.id;
-
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${worker.name}</td>
-                            <td>${worker.iban}</td>
-                            <td>${worker.salary}</td>
-                            <td>
-                                <button onclick="editWorker('${id}', '${worker.name}', '${worker.iban}', '${worker.salary}')" style="background: #ffc107; color: black; padding: 5px 10px;">Edit</button>
-                                <button onclick="deleteWorker('${id}')" style="background: #dc3545; padding: 5px 10px;">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } catch (err) {
-                console.error(err);
-                tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:red;'>Error loading data.</td></tr>";
-            }
-        }
-
-        // वर्कर जोड़ना या अपडेट करना
-        window.addWorker = async function() {
-            const name = document.getElementById('worker-name').value;
-            const iban = document.getElementById('worker-iban').value;
-            const salary = parseFloat(document.getElementById('worker-salary').value);
-
-            if(!name || !iban || isNaN(salary)) {
-                alert("Please fill all fields correctly.");
-                return;
-            }
-
-            try {
-                if (currentEditId) {
-                    // अगर एडिट मोड है तो अपडेट करो
-                    await updateDoc(doc(db, "companies", companyId, "workers", currentEditId), { name, iban, salary });
-                    alert("Worker updated successfully!");
-                    currentEditId = null;
-                } else {
-                    // नया वर्कर जोड़ो
-                    await addDoc(collection(db, "companies", companyId, "workers"), { name, iban, salary });
-                    alert("Worker added successfully!");
-                }
-
-                document.getElementById('worker-name').value = '';
-                document.getElementById('worker-iban').value = '';
-                document.getElementById('worker-salary').value = '';
-                loadWorkers();
-            } catch (err) {
-                console.error(err);
-                alert("Error saving worker.");
-            }
-        }
-
-        // वर्कर एडिट करने के लिए वैल्यू ऊपर फॉर्म में लाना
-        window.editWorker = function(id, name, iban, salary) {
-            currentEditId = id;
-            document.getElementById('worker-name').value = name;
-            document.getElementById('worker-iban').value = iban;
-            document.getElementById('worker-salary').value = salary;
-        }
-
-        // वर्कर डिलीट करना
-        window.deleteWorker = async function(id) {
-            if(confirm("Are you sure you want to delete this worker?")) {
-                await deleteDoc(doc(db, "companies", companyId, "workers", id));
-                loadWorkers();
-            }
-        }
-
-        // --- 5000 लिमिट वैलिडेशन और पॉप-अप लॉजिक ---
-        window.processPayroll = async function() {
-            const querySnapshot = await getDocs(collection(db, "companies", companyId, "workers"));
-            
-            if (querySnapshot.empty) {
-                alert("No workers found to process payroll.");
-                return;
-            }
-
-            let highSalaryFound = false;
-
-            querySnapshot.forEach((docSnap) => {
-                const worker = docSnap.data();
-                if (worker.salary > 5000) {
-                    highSalaryFound = true;
-                }
-            });
-
-            // अगर किसी की भी सैलरी 5000 से ऊपर है, तो पॉप-अप दिखाओ
-            if (highSalaryFound) {
-                document.getElementById('warning-modal').style.display = 'flex';
-            } else {
-                alert("Payroll processed successfully! Data is ready to send via API.");
-            }
-        }
-
-        window.closeModal = function() {
-            document.getElementById('warning-modal').style.display = 'none';
-        }
-
-        window.logout = function() {
-            localStorage.clear();
-            window.location.href = "index.html";
-        }
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
