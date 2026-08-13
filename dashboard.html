@@ -1,0 +1,15 @@
+<!-- यह है वो मॉडर्न पॉप-अप जिसे हम कंट्रोल करेंगे -->
+<div id="custom-alert" class="modal" style="display:none;">
+    <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <h3 style="color: #d9534f; font-size: 22px;">🚫 एक्सेस डिनाइड</h3>
+        <p style="color: #555; font-size: 16px;">आपको यह पेज देखने की अनुमति नहीं है। कृपया पहले लॉग इन करें।</p>
+        <button onclick="window.location.href='index.html'" style="background: #333; color: white; padding: 10px 30px; border-radius: 25px; border: none; cursor: pointer;">लॉगिन पेज पर जाएं</button>
+    </div>
+</div>
+
+<script>
+    // अब अलर्ट की जगह हम यह फंक्शन चलाएंगे
+    function showModernAlert() {
+        document.getElementById('custom-alert').style.display = 'flex';
+    }
+</script>
