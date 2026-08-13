@@ -3,44 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Payroll SaaS</title>
+    <title>Super Admin Panel - Payroll SaaS</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 50px; }
-        .admin-card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 400px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        #api-key-display { margin-top: 20px; padding: 10px; background: #e9ecef; border: 1px dashed #666; word-break: break-all; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 30px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f8f9fa; }
+        .btn-approve { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .status-pending { color: #d9534f; font-weight: bold; }
+        .status-active { color: #28a745; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="admin-card">
-        <h2>Company Registration</h2>
-        <form id="reg-form">
-            <input type="text" id="comp-name" placeholder="Company Name" required>
-            <input type="email" id="comp-email" placeholder="Email Address" required>
-            <select id="plan-select" style="width: 100%; padding: 10px; margin: 5px 0;">
-                <option value="basic">Basic Plan (12,000 SAR)</option>
-                <option value="pro">Pro Plan (25,000 SAR)</option>
-            </select>
-            <button type="submit">Complete Payment & Register</button>
-        </form>
+    <div class="container">
+        <h2>Super Admin - Manage Companies</h2>
+        <p>यहाँ से तू कंपनियों के रजिस्ट्रेशन चेक करके उन्हें अप्रूव करेगा।</p>
 
-        <div id="api-key-section" style="display:none;">
-            <p>Your API Key:</p>
-            <div id="api-key-display"></div>
-            <p><small>Copy this key to your local Dashboard settings.</small></p>
-        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Company Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Action / API Key</th>
+                </tr>
+            </thead>
+            <tbody id="company-table-body">
+                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+            </tbody>
+        </table>
     </div>
 
-    <script>
-        document.getElementById('reg-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            // यहाँ तुम्हारा बैकएंड से API Key जनरेट करने का लॉजिक आएगा
-            const fakeApiKey = "SAAS-" + Math.random().toString(36).substr(2, 12).toUpperCase();
-            document.getElementById('api-key-display').innerText = fakeApiKey;
-            document.getElementById('api-key-section').style.display = 'block';
-        });
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
+            authDomain: "ai-video-studio-global.firebaseapp.com",
+            projectId: "ai-video-studio-global",
+            storageBucket: "ai-video-studio-global.firebasestorage.app",
+            messagingSenderId: "62203997603",
+            appId: "1:62203997603:web:9ce058c677c9e13e75fe16",
+            measurementId: "G-6D2C6T5HHH"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function fetchCompanies() {
+            const tbody = document.getElementById('company-table-body');
+            tbody.innerHTML = "";
+
+            const querySnapshot = await getDocs(collection(db, "companies"));
+            if (querySnapshot.empty) {
+                tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No registrations found.</td></tr>";
+                return;
+            }
+
+            querySnapshot.forEach((documentSnapshot) => {
+                const comp = documentSnapshot.data();
+                const id = documentSnapshot.id;
+
+                let actionContent = '';
+                if (comp.isVerified) {
+                    actionContent = `<span class="status-active">Active</span><br><small>Key: ${comp.apiKey}</small>`;
+                } else {
+                    actionContent = `<button class="btn-approve" onclick="approveCompany('${id}')">Approve & Generate Key</button>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${comp.companyName}</td>
+                        <td>${comp.email}</td>
+                        <td>${comp.isVerified ? '<span class="status-active">Verified</span>' : '<span class="status-pending">Pending Payment</span>'}</td>
+                        <td>${actionContent}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.approveCompany = async function(id) {
+            const compRef = doc(db, "companies", id);
+            const newApiKey = "API-KEY-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+            await updateDoc(compRef, {
+                isVerified: true,
+                apiKey: newApiKey
+            });
+
+            alert("Company approved successfully!");
+            fetchCompanies();
+        }
+
+        fetchCompanies();
     </script>
 </body>
 </html>
