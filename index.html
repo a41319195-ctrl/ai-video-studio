@@ -3,66 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Payroll & API Gateway - Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Payroll SaaS - Company Portal</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 380px; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .switch-text { text-align: center; margin-top: 15px; font-size: 0.9rem; color: #666; cursor: pointer; }
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <h2>Company Payroll Dashboard</h2>
-            <p>Data stays 100% local on your system.</p>
-        </header>
-
-        <!-- वर्कर जोड़ने का फॉर्म -->
-        <section class="form-section">
-            <h3>Add / Edit Worker</h3>
-            <form id="payroll-form">
-                <input type="text" id="worker-name" placeholder="Worker Name" required>
-                <input type="text" id="iqama-number" placeholder="Iqama / ID Number" required>
-                <input type="text" id="iban-number" placeholder="Bank IBAN" required>
-                <input type="number" id="salary-amount" placeholder="Salary Amount (SAR)" required>
-                <button type="submit" id="save-btn">Save Worker</button>
+    <div class="card">
+        <!-- रजिस्ट्रेशन फॉर्म -->
+        <div id="register-section">
+            <h2>Company Registration</h2>
+            <form id="reg-form">
+                <input type="text" id="reg-company" placeholder="Company Name" required>
+                <input type="email" id="reg-email" placeholder="Email Address" required>
+                <input type="password" id="reg-password" placeholder="Create Password" required>
+                <button type="submit">Register & Submit</button>
             </form>
-        </section>
+            <div class="switch-text" onclick="toggleView('login')">Already registered? Login here</div>
+        </div>
 
-        <!-- वर्कर्स की लिस्ट -->
-        <section class="list-section">
-            <h3>Workers List</h3>
-            <table id="workers-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Iqama / ID</th>
-                        <th>IBAN</th>
-                        <th>Salary</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="worker-list-body">
-                    <!-- JavaScript यहाँ डेटा भरेगा -->
-                </tbody>
-            </table>
-        </section>
-
-        <!-- पेरोल प्रोसेस बटन -->
-        <div class="action-section">
-            <button id="pay-now-btn" class="pay-btn">Pay Now & Generate API Data</button>
+        <!-- लॉगिन फॉर्म -->
+        <div id="login-section" class="hidden">
+            <h2>Company Login</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Email Address" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login to Dashboard</button>
+            </form>
+            <div class="switch-text" onclick="toggleView('register')">New here? Register company</div>
         </div>
     </div>
 
-    <!-- 5000 लिमिट वार्निंग पॉप-अप (Modal) -->
-    <div id="warning-modal" class="modal hidden">
-        <div class="modal-content">
-            <h3>⚠️ High Amount Warning!</h3>
-            <p id="warning-text">The following worker's salary exceeds the 5,000 limit. Do you want to confirm this transaction?</p>
-            <div class="modal-buttons">
-                <button id="confirm-pay-btn" class="btn-danger">Yes, Confirm</button>
-                <button id="cancel-pay-btn" class="btn-secondary">Cancel</button>
-            </div>
-        </div>
-    </div>
+    <!-- Firebase SDK और लॉजिक -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <script src="script.js"></script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBV5xJssncq_IMdUENKxCw4C7wLIEuAvyE",
+            authDomain: "ai-video-studio-global.firebaseapp.com",
+            projectId: "ai-video-studio-global",
+            storageBucket: "ai-video-studio-global.firebasestorage.app",
+            messagingSenderId: "62203997603",
+            appId: "1:62203997603:web:9ce058c677c9e13e75fe16",
+            measurementId: "G-6D2C6T5HHH"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.toggleView = function(view) {
+            if(view === 'login') {
+                document.getElementById('register-section').classList.add('hidden');
+                document.getElementById('login-section').classList.remove('hidden');
+            } else {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('register-section').classList.remove('hidden');
+            }
+        }
+
+        // ओनर रजिस्ट्रेशन
+        document.getElementById('reg-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const companyName = document.getElementById('reg-company').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                await addDoc(collection(db, "companies"), {
+                    companyName,
+                    email,
+                    password,
+                    isVerified: false,
+                    apiKey: "",
+                    createdAt: new Date().toISOString()
+                });
+                alert("Registration successful! Waiting for Super Admin approval.");
+                document.getElementById('reg-form').reset();
+                toggleView('login');
+            } catch (err) {
+                console.error(err);
+                alert("Error during registration.");
+            }
+        });
+
+        // ओनर लॉगिन
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            const q = query(collection(db, "companies"), where("email", "==", email), where("password", "==", password));
+            const querySnapshot = await getDocs(q);
+
+            if(querySnapshot.empty) {
+                alert("Invalid email or password!");
+                return;
+            }
+
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if(!data.isVerified) {
+                    alert("Your account is pending approval by the Admin.");
+                } else {
+                    // डेटा को सुरक्षित रूप से ब्राउज़र में सेव करें ताकि सिर्फ इसी कंपनी का डैशबोर्ड खुले
+                    localStorage.setItem('companyId', doc.id);
+                    localStorage.setItem('companyName', data.companyName);
+                    localStorage.setItem('apiKey', data.apiKey);
+                    alert("Login successful! Redirecting to Dashboard...");
+                    window.location.href = "dashboard.html"; // ओनर का मेन पेरोल डैशबोर्ड
+                }
+            });
+        });
+    </script>
 </body>
 </html>
