@@ -1,15 +1,171 @@
-<!-- यह है वो मॉडर्न पॉप-अप जिसे हम कंट्रोल करेंगे -->
-<div id="custom-alert" class="modal" style="display:none;">
-    <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-        <h3 style="color: #d9534f; font-size: 22px;">🚫 एक्सेस डिनाइड</h3>
-        <p style="color: #555; font-size: 16px;">आपको यह पेज देखने की अनुमति नहीं है। कृपया पहले लॉग इन करें।</p>
-        <button onclick="window.location.href='index.html'" style="background: #333; color: white; padding: 10px 30px; border-radius: 25px; border: none; cursor: pointer;">लॉगिन पेज पर जाएं</button>
-    </div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Payroll Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .form-group { display: flex; gap: 10px; margin-top: 20px; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; flex: 1; }
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
 
-<script>
-    // अब अलर्ट की जगह हम यह फंक्शन चलाएंगे
-    function showModernAlert() {
-        document.getElementById('custom-alert').style.display = 'flex';
-    }
-</script>
+    <div class="container">
+        <div class="header">
+            <h2 id="company-title">Company Dashboard</h2>
+            <button onclick="logout()" style="background: #dc3545; padding: 6px 12px;">लॉग आउट</button>
+        </div>
+
+        <p>यहाँ आप अपने वर्कर्स की डिटेल्स जोड़ सकते हैं। यह डेटा पूरी तरह से आपके पास सुरक्षित रहता है।</p>
+
+        <!-- वर्कर जोड़ने का फॉर्म -->
+        <form id="payroll-form" class="form-group">
+            <input type="text" id="worker-name" placeholder="वर्कर का नाम" required>
+            <input type="text" id="iqama-number" placeholder="इक़ामा / आईडी नंबर" required>
+            <input type="text" id="iban-number" placeholder="आईबीएएन (IBAN)" required>
+            <input type="number" id="salary-amount" placeholder="सैलरी अमाउंट" required>
+            <button type="submit">वर्कर जोड़ें</button>
+        </form>
+
+        <!-- वर्कर्स की टेबल -->
+        <table>
+            <thead>
+                <tr>
+                    <th>नाम</th>
+                    <th>इक़ामा</th>
+                    <th>आईबीएएन</th>
+                    <th>सैलरी</th>
+                    <th>एक्शन</th>
+                </tr>
+            </thead>
+            <tbody id="worker-list-body">
+                <tr><td colspan="5" style="text-align:center;">कोई वर्कर नहीं जोड़ा गया है।</td></tr>
+            </tbody>
+        </table>
+
+        <div style="margin-top: 20px; text-align: right;">
+            <button id="pay-now-btn" style="background: #007bff; font-size: 1.1rem; padding: 12px 25px;">पेरोल प्रोसेस करें (Pay Now)</button>
+        </div>
+    </div>
+
+    <!-- स्क्रिप्ट और लोकल डेटा लॉजिक -->
+    <script>
+        // चेक करें कि ओनर लॉगिन है या नहीं
+        const companyId = localStorage.getItem('companyId');
+        const companyName = localStorage.getItem('companyName');
+
+        if (!companyId) {
+            showUniversalPopup("एक्सेस डिनाइड", "कृपया पहले लॉगिन करें!", "index.html");
+        } else {
+            document.getElementById('company-title').innerText = `डैशबोर्ड: ${companyName}`;
+        }
+
+        // वर्कर्स का डेटा सिर्फ इसी कंपनी के लोकल स्टोरेज में रहेगा (आपके डेटाबेस में नहीं)
+        const storageKey = 'payroll_workers_' + companyId;
+        let workers = JSON.parse(localStorage.getItem(storageKey)) || [];
+
+        const payrollForm = document.getElementById('payroll-form');
+        const workerListBody = document.getElementById('worker-list-body');
+        const payBtn = document.getElementById('pay-now-btn');
+
+        function renderTable() {
+            workerListBody.innerHTML = '';
+            if (workers.length === 0) {
+                workerListBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">कोई वर्कर नहीं जोड़ा गया है।</td></tr>';
+                return;
+            }
+            workers.forEach((w, index) => {
+                workerListBody.innerHTML += `
+                    <tr>
+                        <td>${w.name}</td>
+                        <td>${w.iqama}</td>
+                        <td>${w.iban}</td>
+                        <td>${w.salary}</td>
+                        <td><button onclick="deleteWorker(${index})" style="background:#ff4757; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:4px;">हटाएं</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        // वर्कर सेव करें (लोकल)
+        payrollForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newWorker = {
+                name: document.getElementById('worker-name').value,
+                iqama: document.getElementById('iqama-number').value,
+                iban: document.getElementById('iban-number').value,
+                salary: parseFloat(document.getElementById('salary-amount').value)
+            };
+            workers.push(newWorker);
+            localStorage.setItem(storageKey, JSON.stringify(workers));
+            payrollForm.reset();
+            renderTable();
+            showUniversalPopup("सफलता", "वर्कर सफलतापूर्वक जोड़ दिया गया है!");
+        });
+
+        // वर्कर डिलीट करें
+        window.deleteWorker = function(index) {
+            workers.splice(index, 1);
+            localStorage.setItem(storageKey, JSON.stringify(workers));
+            renderTable();
+        }
+
+        // 5000 लिमिट चेक और यूनिवर्सल पॉप-अप लॉजिक
+        payBtn.addEventListener('click', () => {
+            const highSalaryWorkers = workers.filter(w => w.salary > 5000);
+            
+            if (highSalaryWorkers.length > 0) {
+                showUniversalPopup("⚠️ हाई सैलरी चेतावनी", `चेतावनी: ${highSalaryWorkers.length} वर्कर(्स) की सैलरी 5,000 से अधिक है। कृपया इसे चेक करें।`);
+            } else {
+                showUniversalPopup("सफलता", "पेरोल डेटा लिमिट के अंदर है। बैंक API पर भेजा जा रहा है...");
+            }
+        });
+
+        // यूनिवर्सल मॉडर्न पॉप-अप फंक्शन
+        function showUniversalPopup(title, message, redirectUrl = null) {
+            let modalBox = document.getElementById('universal-modal');
+            if (!modalBox) {
+                const modalHTML = `
+                    <div id="universal-modal" style="display:flex; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center;">
+                        <div style="background:white; padding:30px; border-radius:15px; width:380px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+                            <h3 id="uni-title" style="color:#333; margin-top:0; font-size:22px;"></h3>
+                            <p id="uni-msg" style="color:#666; font-size:16px; line-height:1.5;"></p>
+                            <div style="margin-top:20px;">
+                                <button id="uni-ok-btn" style="background:#007bff; color:white; border:none; padding:10px 25px; border-radius:8px; font-weight:bold; cursor:pointer;">ठीक है</button>
+                            </div>
+                        </div>
+                    </div>`;
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                modalBox = document.getElementById('universal-modal');
+            }
+
+            document.getElementById('uni-title').innerText = title;
+            document.getElementById('uni-msg').innerText = message;
+            modalBox.style.display = 'flex';
+
+            document.getElementById('uni-ok-btn').onclick = function() {
+                modalBox.style.display = 'none';
+                if (redirectUrl) {
+                    window.location.href = redirectUrl;
+                }
+            };
+        }
+
+        window.logout = function() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        renderTable();
+    </script>
+</body>
+</html>
